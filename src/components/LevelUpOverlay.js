@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, Dimensions, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Animated, Dimensions, TouchableOpacity, Easing } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS, RANK_COLORS, FONTS, FONT_SIZES, SPACING, BORDER_RADIUS, SHADOWS } from '../theme';
 import { RANK_TITLES } from '../utils/leveling';
@@ -22,15 +22,15 @@ const LevelUpOverlay = ({ data, onDismiss }) => {
         useNativeDriver: true,
       }),
       Animated.parallel([
-        Animated.spring(contentScale, {
+        Animated.timing(contentScale, {
           toValue: 1,
-          friction: 8,
-          tension: 40,
+          duration: 400,
+          easing: Easing.out(Easing.exp),
           useNativeDriver: true,
         }),
         Animated.timing(contentOpacity, {
           toValue: 1,
-          duration: 500,
+          duration: 400,
           useNativeDriver: true,
         }),
       ]),

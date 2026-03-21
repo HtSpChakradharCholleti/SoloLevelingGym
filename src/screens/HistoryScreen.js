@@ -32,7 +32,7 @@ export default function HistoryScreen() {
   };
 
   const renderWorkoutItem = (entry, index) => (
-    <Animated.View key={entry.id} entering={FadeInUp.delay(index * 150).springify().damping(14)} style={styles.historyItem}>
+    <Animated.View key={entry.id} entering={FadeInUp.delay(index * 100).duration(500)} style={styles.historyItem}>
       {/* Date & Duration */}
       <View style={styles.itemHeader}>
         <View style={styles.dateArea}>

@@ -15,6 +15,7 @@ import AppNavigator from './src/navigation/AppNavigator';
 import LevelUpOverlay from './src/components/LevelUpOverlay';
 import { COLORS } from './src/theme';
 import SoundManager from './src/utils/SoundManager';
+import NotificationManager, { initNotifications } from './src/utils/NotificationManager';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -62,6 +63,17 @@ export default function App() {
     if (fontsLoaded) {
       await SplashScreen.hideAsync();
       SoundManager.init();
+      
+      // Initialize notifications
+      const initAppNotifications = async () => {
+        initNotifications();
+        const hasPermission = await NotificationManager.requestPermissions();
+        if (hasPermission) {
+          // Schedule the daily workout reminder
+          await NotificationManager.scheduleWorkoutReminder();
+        }
+      };
+      initAppNotifications();
     }
   }, [fontsLoaded]);
 

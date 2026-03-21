@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import { View, Text, StyleSheet, Animated, Easing } from 'react-native';
 import { COLORS, FONTS, FONT_SIZES, SPACING } from '../theme';
 
 const XPToast = ({ amount, stat, onDone }) => {
@@ -14,10 +14,10 @@ const XPToast = ({ amount, stat, onDone }) => {
         duration: 200,
         useNativeDriver: true,
       }),
-      Animated.spring(scale, {
+      Animated.timing(scale, {
         toValue: 1,
-        friction: 6,
-        tension: 100,
+        duration: 300,
+        easing: Easing.out(Easing.back(1.5)), // Slight pop but not bouncy
         useNativeDriver: true,
       }),
       Animated.timing(translateY, {

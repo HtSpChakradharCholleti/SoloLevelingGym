@@ -11,8 +11,8 @@ const ExerciseItem = ({ exercise, completedSets = [], totalSets, onCompleteSet, 
 
   return (
     <Animated.View 
-      entering={FadeInLeft.delay(index * 150).springify().damping(14)}
-      layout={Layout.springify().damping(14)}
+      entering={FadeInLeft.delay(index * 100).duration(500)}
+      layout={Layout.duration(400)}
       style={styles.wrapper}
     >
       <View style={[styles.container, SHADOWS.soft, allDone && styles.containerDone]}>

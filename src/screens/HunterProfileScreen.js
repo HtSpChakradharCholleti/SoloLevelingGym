@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, ScrollView, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Dimensions, TouchableOpacity, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS, STAT_COLORS, STAT_LABELS, STAT_DESCRIPTIONS, RANK_COLORS, FONTS, FONT_SIZES, SPACING, BORDER_RADIUS, SHADOWS, GRADIENTS } from '../theme';
@@ -8,6 +8,7 @@ import { getRequiredXP, getLevelProgress, getStatLevel, getStatProgress, RANK_TI
 import SystemPanel from '../components/SystemPanel';
 import StatBar from '../components/StatBar';
 import RankBadge from '../components/RankBadge';
+import NotificationManager from '../utils/NotificationManager';
 
 const { width } = Dimensions.get('window');
 
@@ -109,6 +110,38 @@ export default function HunterProfileScreen() {
               <Text style={styles.statDescription}>{STAT_DESCRIPTIONS[stat]}</Text>
             </View>
           ))}
+        </View>
+      </SystemPanel>
+
+      {/* Notification Settings (Debug/Testing) */}
+      <SystemPanel glowColor={COLORS.accent} style={{ marginTop: SPACING.lg }}>
+        <View style={styles.statsPanelHeader}>
+          <MaterialCommunityIcons name="bell-cog" size={18} color={COLORS.accent} />
+          <Text style={[styles.statsPanelTitle, { color: COLORS.accent }]}>SYSTEM NOTIFICATIONS</Text>
+        </View>
+
+        <View style={styles.notificationButtons}>
+          <TouchableOpacity 
+            style={[styles.actionButton, { borderColor: COLORS.accent }]}
+            onPress={async () => {
+              await NotificationManager.scheduleTestNotification();
+              Alert.alert("System Notification", "Test notification scheduled for 5 seconds from now.");
+            }}
+          >
+            <MaterialCommunityIcons name="bell-ring" size={20} color={COLORS.accent} />
+            <Text style={[styles.actionButtonText, { color: COLORS.accent }]}>Test Notification</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.actionButton, { borderColor: COLORS.error }]}
+            onPress={async () => {
+              await NotificationManager.cancelAllNotifications();
+              Alert.alert("System Notification", "All scheduled notifications have been cleared.");
+            }}
+          >
+            <MaterialCommunityIcons name="bell-off" size={20} color={COLORS.error} />
+            <Text style={[styles.actionButtonText, { color: COLORS.error }]}>Clear All Reminders</Text>
+          </TouchableOpacity>
         </View>
       </SystemPanel>
     </ScrollView>
@@ -267,5 +300,24 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
     marginTop: -SPACING.xs,
     marginLeft: 2,
+  },
+  notificationButtons: {
+    gap: SPACING.md,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.sm,
+    paddingVertical: SPACING.md,
+    borderRadius: BORDER_RADIUS.md,
+    borderWidth: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  actionButtonText: {
+    fontFamily: FONTS.heading,
+    fontSize: FONT_SIZES.sm,
+    fontWeight: '700',
+    letterSpacing: 1,
   },
 });

@@ -13,10 +13,18 @@ class SoundManager {
     
     try {
       this.players.tap = createAudioPlayer(require('../../assets/sounds/tap.wav'));
+    } catch(e) { console.warn('Failed to load tap sound'); }
+    try {
       this.players.level_up = createAudioPlayer(require('../../assets/sounds/level_up.wav'));
+    } catch(e) { console.warn('Failed to load level_up sound'); }
+    try {
       this.players.quest_complete = createAudioPlayer(require('../../assets/sounds/quest_complete.wav'));
+    } catch(e) { console.warn('Failed to load quest_complete sound'); }
+    try {
       this.players.dungeon_enter = createAudioPlayer(require('../../assets/sounds/dungeon_enter.wav'));
-      
+    } catch(e) { console.warn('Failed to load dungeon_enter sound'); }
+    
+    try {
       // BGM
       this.players.bgm = createAudioPlayer(require('../../assets/sounds/bgm.wav'));
       this.players.bgm.loop = true;

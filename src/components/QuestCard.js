@@ -1,25 +1,42 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import Animated, { FadeInLeft, Layout, useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import Animated, { FadeInLeft, Layout, useSharedValue, useAnimatedStyle, withSpring, withTiming, withRepeat, interpolateColor } from 'react-native-reanimated';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS, STAT_COLORS, FONTS, FONT_SIZES, SPACING, BORDER_RADIUS, SHADOWS } from '../theme';
 
 const QuestCard = ({ quest, onComplete, index = 0 }) => {
   const statColor = quest.stat === 'ALL' ? COLORS.warning : STAT_COLORS[quest.stat] || COLORS.primary;
   const scale = useSharedValue(1);
-  const animatedStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const glowOpacity = useSharedValue(0.2);
+
+  React.useEffect(() => {
+    glowOpacity.value = withRepeat(
+      withTiming(0.5, { duration: 1500 }),
+      -1,
+      true
+    );
+  }, []);
+
+  const animatedStyle = useAnimatedStyle(() => ({ 
+    transform: [{ scale: scale.value }],
+    borderColor: interpolateColor(
+      glowOpacity.value,
+      [0.2, 0.5],
+      ['rgba(255,255,255,0.05)', statColor]
+    ),
+  }));
 
   return (
     <Animated.View
-      entering={FadeInLeft.delay(index * 150).springify().damping(14)}
-      layout={Layout.springify().damping(14)}
+      entering={FadeInLeft.delay(index * 100).duration(500)}
+      layout={Layout.duration(400)}
       style={styles.wrapper}
     >
       <Animated.View style={[styles.container, SHADOWS.soft, quest.completed && styles.completed, animatedStyle]}>
         <Pressable
           onPress={() => !quest.completed && onComplete(quest)}
-          onPressIn={() => !quest.completed && (scale.value = withSpring(0.96, { damping: 12 }))}
-          onPressOut={() => scale.value = withSpring(1, { damping: 12 })}
+          onPressIn={() => !quest.completed && (scale.value = withTiming(0.98, { duration: 100 }))}
+          onPressOut={() => scale.value = withTiming(1, { duration: 100 })}
           disabled={quest.completed}
         >
           <View style={[styles.inner, SHADOWS.inner]}>
