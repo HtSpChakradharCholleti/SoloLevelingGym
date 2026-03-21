@@ -1,0 +1,56 @@
+import { createAudioPlayer } from 'expo-audio';
+
+class SoundManager {
+  constructor() {
+    this.players = {};
+    this.isInitialized = false;
+  }
+
+  init() {
+    if (this.isInitialized) return;
+    
+    try {
+      this.players.tap = createAudioPlayer(require('../../assets/sounds/tap.wav'));
+      this.players.level_up = createAudioPlayer(require('../../assets/sounds/level_up.wav'));
+      this.players.quest_complete = createAudioPlayer(require('../../assets/sounds/quest_complete.wav'));
+      this.players.dungeon_enter = createAudioPlayer(require('../../assets/sounds/dungeon_enter.wav'));
+      this.isInitialized = true;
+      console.log('expo-audio sounds initialized successfully');
+    } catch (error) {
+      console.error('Failed to initialize sounds', error);
+    }
+  }
+
+  playSound(soundName) {
+    try {
+      if (!this.isInitialized) {
+        this.init();
+      }
+      const player = this.players[soundName];
+      if (player) {
+        player.seekTo(0); // Rewind if already played
+        player.play();
+      }
+    } catch (error) {
+      console.error(`Error playing sound ${soundName}:`, error);
+    }
+  }
+
+  playTap() {
+    this.playSound('tap');
+  }
+
+  playLevelUp() {
+    this.playSound('level_up');
+  }
+
+  playQuestComplete() {
+    this.playSound('quest_complete');
+  }
+
+  playDungeonEnter() {
+    this.playSound('dungeon_enter');
+  }
+}
+
+export default new SoundManager();
