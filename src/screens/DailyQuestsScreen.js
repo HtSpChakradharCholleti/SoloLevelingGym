@@ -70,11 +70,12 @@ export default function DailyQuestsScreen() {
         <View style={styles.questsSection}>
           {dailyQuests
             .filter(q => !q.isBonus)
-            .map(quest => (
+            .map((quest, index) => (
               <QuestCard
                 key={quest.id}
                 quest={quest}
                 onComplete={handleCompleteQuest}
+                index={index}
               />
             ))}
 
@@ -87,6 +88,7 @@ export default function DailyQuestsScreen() {
                 <QuestCard
                   quest={quest}
                   onComplete={handleCompleteQuest}
+                  index={totalCount}
                 />
               </View>
             ))}

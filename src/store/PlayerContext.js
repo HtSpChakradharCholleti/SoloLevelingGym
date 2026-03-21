@@ -336,6 +336,7 @@ export function PlayerProvider({ children }) {
   }, []);
 
   const completeExerciseSet = useCallback((exerciseId, setIndex, xp, stat) => {
+    SoundManager.playTap();
     dispatch({
       type: ActionTypes.COMPLETE_EXERCISE_SET,
       payload: { exerciseId, setIndex, xp, stat },
@@ -343,6 +344,7 @@ export function PlayerProvider({ children }) {
   }, []);
 
   const finishWorkout = useCallback(() => {
+    SoundManager.playQuestComplete();
     if (state.activeWorkout) {
       // Apply stat XP gains
       Object.entries(state.activeWorkout.statXPEarned).forEach(([stat, xp]) => {
@@ -355,10 +357,12 @@ export function PlayerProvider({ children }) {
   }, [state.activeWorkout, gainXP, gainStatXP]);
 
   const cancelWorkout = useCallback(() => {
+    SoundManager.playTap();
     dispatch({ type: ActionTypes.CANCEL_WORKOUT });
   }, []);
 
   const dismissLevelUp = useCallback(() => {
+    SoundManager.playTap();
     dispatch({ type: ActionTypes.DISMISS_LEVEL_UP });
   }, []);
 

@@ -15,12 +15,14 @@ export default function DungeonsScreen({ navigation }) {
   const [selectedExercises, setSelectedExercises] = useState([]);
 
   const openDungeon = (dungeon) => {
+    SoundManager.playTap();
     const exercises = getExercisesForDungeon(dungeon.id);
     setSelectedDungeon(dungeon);
     setSelectedExercises(exercises.map(e => ({ ...e, selected: true })));
   };
 
   const closeDungeon = () => {
+    SoundManager.playTap();
     setSelectedDungeon(null);
     setSelectedExercises([]);
   };
@@ -56,11 +58,12 @@ export default function DungeonsScreen({ navigation }) {
 
         {/* Dungeon Grid */}
         <View style={styles.grid}>
-          {DUNGEONS.map(dungeon => (
+          {DUNGEONS.map((dungeon, index) => (
             <DungeonCard
               key={dungeon.id}
               dungeon={dungeon}
               onPress={openDungeon}
+              index={index}
             />
           ))}
         </View>

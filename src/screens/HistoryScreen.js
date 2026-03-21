@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, ScrollView, FlatList, StyleSheet } from 'react-native';
+import Animated, { FadeInUp } from 'react-native-reanimated';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS, STAT_COLORS, FONTS, FONT_SIZES, SPACING, BORDER_RADIUS } from '../theme';
 import { usePlayer } from '../store/PlayerContext';
@@ -30,8 +31,8 @@ export default function HistoryScreen() {
     });
   };
 
-  const renderWorkoutItem = (entry) => (
-    <View key={entry.id} style={styles.historyItem}>
+  const renderWorkoutItem = (entry, index) => (
+    <Animated.View key={entry.id} entering={FadeInUp.delay(index * 150).springify().damping(14)} style={styles.historyItem}>
       {/* Date & Duration */}
       <View style={styles.itemHeader}>
         <View style={styles.dateArea}>
@@ -64,7 +65,7 @@ export default function HistoryScreen() {
           </Text>
         ))}
       </View>
-    </View>
+    </Animated.View>
   );
 
   return (
@@ -104,7 +105,7 @@ export default function HistoryScreen() {
       ) : (
         <View style={styles.historyList}>
           <Text style={styles.listTitle}>BATTLE LOG</Text>
-          {workoutHistory.map(renderWorkoutItem)}
+          {workoutHistory.map((entry, index) => renderWorkoutItem(entry, index))}
         </View>
       )}
     </ScrollView>

@@ -814,6 +814,11 @@
   resolved "https://registry.npmjs.org/@expo-google-fonts/inter/-/inter-0.4.2.tgz"
   integrity sha512-syfiImMaDmq7cFi0of+waE2M4uSCyd16zgyWxdPOY7fN2VBmSLKEzkfbZgeOjJq61kSqPBNNtXjggiQiSD6gMQ==
 
+"@expo-google-fonts/outfit@^0.4.3":
+  version "0.4.3"
+  resolved "https://registry.yarnpkg.com/@expo-google-fonts/outfit/-/outfit-0.4.3.tgz#aa513893f064c3345b694cb6df0ac5cf9e427ee7"
+  integrity sha512-2uQmDVJencWLllxds6SG92E+SjxyZfvg7eZKZ5XLHggmm5AuUyQK7lzMAFOUzT6kheq2kJ7BAiubMdjKT32fJg==
+
 "@expo-google-fonts/rajdhani@^0.4.1":
   version "0.4.1"
   resolved "https://registry.npmjs.org/@expo-google-fonts/rajdhani/-/rajdhani-0.4.1.tgz"

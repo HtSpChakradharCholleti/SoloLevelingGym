@@ -2,54 +2,49 @@
 // Dark neon aesthetic inspired by Solo Leveling System UI
 
 export const COLORS = {
-  // Backgrounds
-  background: '#0a0a0f',
-  surface: '#12121a',
-  surfaceLight: '#1a1a2e',
-  surfaceBorder: '#2a2a3e',
+  // Backgrounds - CRED inspired ultra-dark
+  background: '#040405',
+  surface: '#121215',
+  surfaceLight: '#18181b',
+  surfaceBorder: '#222226',
 
-  // Primary - Electric Blue (System UI)
-  primary: '#4a7dff',
-  primaryDark: '#3366e0',
-  primaryGlow: 'rgba(74, 125, 255, 0.3)',
+  // Primary & Accent (Subtler metallic/neon tones)
+  primary: '#e8e8f0', // Crisp white/silver
+  primaryDark: '#8888a0',
+  primaryGlow: 'rgba(232, 232, 240, 0.1)',
 
-  // Accent - Neon Purple (Shadow Monarch)
-  accent: '#b44aff',
-  accentDark: '#9933e0',
-  accentGlow: 'rgba(180, 74, 255, 0.3)',
-
-  // Shadow Violet
-  shadowViolet: '#2a1a4e',
-  shadowVioletGlow: 'rgba(42, 26, 78, 0.5)',
+  accent: '#cba153', // CRED-like gold/copper accent
+  accentDark: '#8e6b2c',
+  accentGlow: 'rgba(203, 161, 83, 0.15)',
 
   // Text
-  textPrimary: '#e8e8f0',
-  textSecondary: '#8888a0',
-  textMuted: '#555570',
+  textPrimary: '#f4f4f5',
+  textSecondary: '#a1a1aa',
+  textMuted: '#52525b',
 
   // Status
-  success: '#00e676',
-  successGlow: 'rgba(0, 230, 118, 0.3)',
-  danger: '#ff4757',
-  dangerGlow: 'rgba(255, 71, 87, 0.3)',
-  warning: '#ffa502',
-  warningGlow: 'rgba(255, 165, 2, 0.3)',
+  success: '#10b981',
+  successGlow: 'rgba(16, 185, 129, 0.15)',
+  danger: '#ef4444',
+  dangerGlow: 'rgba(239, 68, 68, 0.15)',
+  warning: '#fadd60',
+  warningGlow: 'rgba(250, 221, 96, 0.15)',
 
-  // Stat Colors
-  statSTR: '#ff4757',
-  statVIT: '#00e676',
-  statAGI: '#00d2d3',
-  statEND: '#ff6b35',
-  statINT: '#7c4dff',
-  statPER: '#ffb142',
+  // Stat Colors - Refined pastel/metallic
+  statSTR: '#e27b68', // Muted rust/copper
+  statVIT: '#5ab08c', // Muted sage/jade
+  statAGI: '#68b1c1', // Muted steel blue
+  statEND: '#cba153', // Soft gold
+  statINT: '#8b7ece', // Muted violet
+  statPER: '#bfa780', // Soft sand/bronze
 
-  // Rank Colors
-  rankE: '#888899',
-  rankD: '#4cd137',
-  rankC: '#4a7dff',
-  rankB: '#b44aff',
-  rankA: '#ff6b35',
-  rankS: '#ffd700',
+  // Rank Colors - Metallic scheme
+  rankE: '#71717a', // Slate
+  rankD: '#869d85', // Oxidized copper
+  rankC: '#7588b4', // Soft blue steel
+  rankB: '#a384b6', // Amethyst
+  rankA: '#d46b45', // Crimson copper
+  rankS: '#eab308', // Pure Gold
 };
 
 export const RANK_COLORS = {
@@ -89,12 +84,12 @@ export const STAT_DESCRIPTIONS = {
 };
 
 export const FONTS = {
-  heading: 'Rajdhani_700Bold',
-  headingMedium: 'Rajdhani_600SemiBold',
-  body: 'Inter_400Regular',
-  bodyMedium: 'Inter_500Medium',
-  bodySemiBold: 'Inter_600SemiBold',
-  bodyBold: 'Inter_700Bold',
+  heading: 'Outfit_700Bold',
+  headingMedium: 'Outfit_600SemiBold',
+  body: 'Outfit_400Regular',
+  bodyMedium: 'Outfit_500Medium',
+  bodySemiBold: 'Outfit_600SemiBold',
+  bodyBold: 'Outfit_700Bold',
 };
 
 export const FONT_SIZES = {
@@ -129,31 +124,35 @@ export const BORDER_RADIUS = {
 };
 
 export const SHADOWS = {
-  glow: (color = COLORS.primary, intensity = 0.3) => ({
+  glow: (color = COLORS.primary, intensity = 0.15) => ({
     shadowColor: color,
-    shadowOffset: { width: 0, height: 0 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: intensity,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowRadius: 16,
+    elevation: 4,
   }),
   soft: {
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.5,
+    shadowRadius: 24,
+    elevation: 10,
   },
+  inner: { // Simulated inner bevel for neumorphism
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.05)',
+  }
 };
 
 export const GRADIENTS = {
-  primary: [COLORS.primaryDark, COLORS.primary],
+  primary: [COLORS.surfaceBorder, COLORS.surface],
   accent: [COLORS.accentDark, COLORS.accent],
-  surface: [COLORS.surface, COLORS.surfaceLight],
-  dark: ['#0a0a0f', '#12121a'],
-  rankE: ['#666677', '#888899'],
-  rankD: ['#2d8a1e', '#4cd137'],
-  rankC: ['#3366e0', '#4a7dff'],
-  rankB: ['#8a2be2', '#b44aff'],
-  rankA: ['#cc5500', '#ff6b35'],
-  rankS: ['#cc9900', '#ffd700'],
+  surface: ['#121215', '#0a0a0c'], // Deep sleek background
+  dark: ['#040405', '#121215'],
+  rankE: ['#3f3f46', '#71717a'],
+  rankD: ['#4b624a', '#869d85'],
+  rankC: ['#3e4f73', '#7588b4'],
+  rankB: ['#594366', '#a384b6'],
+  rankA: ['#8f3a1d', '#d46b45'],
+  rankS: ['#a16207', '#eab308'],
 };

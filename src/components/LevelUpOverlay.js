@@ -1,8 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, Dimensions, TouchableOpacity } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { COLORS, RANK_COLORS, GRADIENTS, FONTS, FONT_SIZES, SPACING, BORDER_RADIUS } from '../theme';
+import { COLORS, RANK_COLORS, FONTS, FONT_SIZES, SPACING, BORDER_RADIUS, SHADOWS } from '../theme';
 import { RANK_TITLES } from '../utils/leveling';
 import RankBadge from './RankBadge';
 
@@ -10,45 +9,34 @@ const { width, height } = Dimensions.get('window');
 
 const LevelUpOverlay = ({ data, onDismiss }) => {
   const overlayOpacity = useRef(new Animated.Value(0)).current;
-  const contentScale = useRef(new Animated.Value(0.3)).current;
+  const contentScale = useRef(new Animated.Value(0.9)).current;
   const contentOpacity = useRef(new Animated.Value(0)).current;
-  const glowScale = useRef(new Animated.Value(0)).current;
   const textOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Sequence of animations
+    // Sequence of animations for CRED-like sleek entry
     Animated.sequence([
-      // Flash overlay
       Animated.timing(overlayOpacity, {
         toValue: 1,
         duration: 300,
         useNativeDriver: true,
       }),
-      // Glow burst
-      Animated.spring(glowScale, {
-        toValue: 1,
-        friction: 4,
-        tension: 60,
-        useNativeDriver: true,
-      }),
-      // Content appears
       Animated.parallel([
         Animated.spring(contentScale, {
           toValue: 1,
-          friction: 6,
-          tension: 80,
+          friction: 8,
+          tension: 40,
           useNativeDriver: true,
         }),
         Animated.timing(contentOpacity, {
           toValue: 1,
-          duration: 400,
+          duration: 500,
           useNativeDriver: true,
         }),
       ]),
-      // Text fades in
       Animated.timing(textOpacity, {
         toValue: 1,
-        duration: 300,
+        duration: 400,
         useNativeDriver: true,
       }),
     ]).start();
@@ -65,16 +53,6 @@ const LevelUpOverlay = ({ data, onDismiss }) => {
         activeOpacity={1}
         onPress={onDismiss}
       >
-        {/* Glow burst circle */}
-        <Animated.View style={[
-          styles.glowBurst,
-          {
-            transform: [{ scale: glowScale }],
-            backgroundColor: rankColor + '15',
-            borderColor: rankColor + '30',
-          },
-        ]} />
-
         {/* Content */}
         <Animated.View style={[
           styles.content,
@@ -83,15 +61,14 @@ const LevelUpOverlay = ({ data, onDismiss }) => {
             transform: [{ scale: contentScale }],
           },
         ]}>
-          {/* LEVEL UP text */}
-          <Text style={[styles.levelUpLabel, { color: rankColor }]}>
-            ⚔️ LEVEL UP ⚔️
+          <Text style={[styles.levelUpLabel, { color: COLORS.textPrimary }]}>
+            LEVEL UP
           </Text>
 
           {/* Level display */}
           <View style={styles.levelRow}>
             <Text style={styles.oldLevel}>Lv.{data.oldLevel}</Text>
-            <MaterialCommunityIcons name="arrow-right" size={24} color={rankColor} />
+            <MaterialCommunityIcons name="arrow-right" size={20} color={COLORS.textSecondary} />
             <Text style={[styles.newLevel, { color: rankColor }]}>Lv.{data.newLevel}</Text>
           </View>
 
@@ -102,22 +79,17 @@ const LevelUpOverlay = ({ data, onDismiss }) => {
 
           {/* Rank up message */}
           {data.rankUp && (
-            <Animated.View style={[styles.rankUpBanner, { opacity: textOpacity }]}>
-              <LinearGradient
-                colors={GRADIENTS[`rank${data.newRank}`] || GRADIENTS.rankE}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.rankUpGradient}
-              >
-                <Text style={styles.rankUpText}>
-                  RANK UP! {RANK_TITLES[data.newRank]}
+            <Animated.View style={[styles.rankUpBanner, { opacity: textOpacity }, SHADOWS.soft]}>
+              <View style={[styles.rankUpInner, SHADOWS.inner]}>
+                <Text style={[styles.rankUpText, { color: rankColor }]}>
+                  RANK UP: {RANK_TITLES[data.newRank]}
                 </Text>
-              </LinearGradient>
+              </View>
             </Animated.View>
           )}
 
           <Animated.Text style={[styles.tapText, { opacity: textOpacity }]}>
-            Tap to continue
+            Tap anywhere to continue
           </Animated.Text>
         </Animated.View>
       </TouchableOpacity>
@@ -128,7 +100,7 @@ const LevelUpOverlay = ({ data, onDismiss }) => {
 const styles = StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    backgroundColor: 'rgba(0, 0, 0, 0.92)',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1000,
@@ -139,13 +111,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  glowBurst: {
-    position: 'absolute',
-    width: 300,
-    height: 300,
-    borderRadius: 150,
-    borderWidth: 2,
-  },
   content: {
     alignItems: 'center',
     paddingHorizontal: SPACING.xxl,
@@ -154,11 +119,9 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.heading,
     fontSize: FONT_SIZES.xxxl,
     fontWeight: '700',
-    letterSpacing: 4,
-    textShadowColor: 'rgba(0,0,0,0.5)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 8,
+    letterSpacing: 8,
     marginBottom: SPACING.xl,
+    opacity: 0.9,
   },
   levelRow: {
     flexDirection: 'row',
@@ -168,42 +131,43 @@ const styles = StyleSheet.create({
   },
   oldLevel: {
     fontFamily: FONTS.heading,
-    fontSize: FONT_SIZES.xxl,
-    fontWeight: '700',
+    fontSize: FONT_SIZES.xl,
+    fontWeight: '600',
     color: COLORS.textMuted,
   },
   newLevel: {
     fontFamily: FONTS.heading,
     fontSize: FONT_SIZES.xxxl,
     fontWeight: '700',
-    textShadowColor: 'rgba(0,0,0,0.5)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 8,
   },
   rankArea: {
     marginBottom: SPACING.xxl,
   },
   rankUpBanner: {
     marginBottom: SPACING.xxl,
+    backgroundColor: COLORS.surface,
+    borderRadius: BORDER_RADIUS.round,
+    borderWidth: 1,
+    borderColor: COLORS.background,
   },
-  rankUpGradient: {
+  rankUpInner: {
     paddingHorizontal: SPACING.xxl,
     paddingVertical: SPACING.md,
     borderRadius: BORDER_RADIUS.round,
   },
   rankUpText: {
     fontFamily: FONTS.heading,
-    fontSize: FONT_SIZES.lg,
+    fontSize: FONT_SIZES.base,
     fontWeight: '700',
-    color: '#fff',
-    letterSpacing: 2,
+    letterSpacing: 3,
     textAlign: 'center',
   },
   tapText: {
     fontFamily: FONTS.body,
-    fontSize: FONT_SIZES.md,
+    fontSize: FONT_SIZES.sm,
     color: COLORS.textMuted,
-    marginTop: SPACING.lg,
+    marginTop: SPACING.xl,
+    letterSpacing: 1,
   },
 });
 

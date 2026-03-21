@@ -1,9 +1,11 @@
+import { AppState } from 'react-native';
 import { createAudioPlayer } from 'expo-audio';
 
 class SoundManager {
   constructor() {
     this.players = {};
     this.isInitialized = false;
+    this.appStateSubscription = null;
   }
 
   init() {
@@ -14,6 +16,20 @@ class SoundManager {
       this.players.level_up = createAudioPlayer(require('../../assets/sounds/level_up.wav'));
       this.players.quest_complete = createAudioPlayer(require('../../assets/sounds/quest_complete.wav'));
       this.players.dungeon_enter = createAudioPlayer(require('../../assets/sounds/dungeon_enter.wav'));
+      
+      // BGM
+      this.players.bgm = createAudioPlayer(require('../../assets/sounds/bgm.wav'));
+      this.players.bgm.loop = true;
+      this.players.bgm.play();
+
+      this.appStateSubscription = AppState.addEventListener('change', (nextAppState) => {
+        if (nextAppState === 'active') {
+          this.players.bgm.play();
+        } else {
+          this.players.bgm.pause();
+        }
+      });
+
       this.isInitialized = true;
       console.log('expo-audio sounds initialized successfully');
     } catch (error) {
@@ -28,7 +44,7 @@ class SoundManager {
       }
       const player = this.players[soundName];
       if (player) {
-        player.seekTo(0); // Rewind if already played
+        player.seekTo(0); 
         player.play();
       }
     } catch (error) {

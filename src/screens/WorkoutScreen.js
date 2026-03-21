@@ -137,13 +137,14 @@ export default function WorkoutScreen({ navigation }) {
 
         {/* Exercise List */}
         <Text style={styles.sectionTitle}>EXERCISES</Text>
-        {activeWorkout.exercises.map(exercise => (
+        {activeWorkout.exercises.map((exercise, index) => (
           <ExerciseItem
             key={exercise.id}
             exercise={exercise}
             completedSets={activeWorkout.completedSets[exercise.id] || []}
             totalSets={exercise.sets}
             onCompleteSet={handleCompleteSet}
+            index={index}
           />
         ))}
 
