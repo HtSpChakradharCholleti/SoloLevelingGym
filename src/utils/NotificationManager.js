@@ -23,11 +23,12 @@ class NotificationManager {
     }
     
     if (finalStatus === 'granted' && Platform.OS === 'android') {
-      await Notifications.setNotificationChannelAsync('default', {
-        name: 'default',
+      await Notifications.setNotificationChannelAsync('system_alerts', {
+        name: 'System Alerts',
         importance: Notifications.AndroidImportance.MAX,
         vibrationPattern: [0, 250, 250, 250],
         lightColor: '#FF231F7C',
+        sound: 'notif', 
       });
     }
     
@@ -46,8 +47,10 @@ class NotificationManager {
     const secondsUntil = Math.max(1, Math.floor((triggerDate.getTime() - now.getTime()) / 1000));
     
     const trigger = {
+      type: 'timeInterval', // Explicitly set type to avoid "invalid trigger" error
       seconds: secondsUntil,
-      repeats: false, // In a real app, we'd use a repeating trigger or reschedule on fire
+      repeats: false,
+      channelId: 'system_alerts',
     };
 
     return await Notifications.scheduleNotificationAsync({
@@ -55,7 +58,10 @@ class NotificationManager {
         title,
         body,
         data,
-        sound: true,
+        sound: Platform.OS === 'ios' ? 'notif.wav' : 'notif',
+        android: {
+          channelId: 'system_alerts',
+        },
       },
       trigger,
     });
@@ -135,15 +141,20 @@ class NotificationManager {
 
   static async scheduleTestNotification() {
     const trigger = {
+      type: 'timeInterval',
       seconds: 5,
       repeats: false,
+      channelId: 'system_alerts',
     };
 
     return await Notifications.scheduleNotificationAsync({
       content: {
         title: "System Online 🚀",
         body: "Local notifications are now active. Ready for combat!",
-        sound: true,
+        sound: Platform.OS === 'ios' ? 'notif.wav' : 'notif',
+        android: {
+          channelId: 'system_alerts',
+        },
       },
       trigger,
     });

@@ -38,7 +38,12 @@
     "plugins": [
       "expo-font",
       "expo-audio",
-      "expo-notifications"
+      [
+        "expo-notifications",
+        {
+          "sounds": ["./assets/notif.wav"]
+        }
+      ]
     ]
   }
 }
