@@ -23,6 +23,12 @@ class SoundManager {
     try {
       this.players.dungeon_enter = createAudioPlayer(require('../../assets/sounds/dungeon_enter.wav'));
     } catch(e) { console.warn('Failed to load dungeon_enter sound'); }
+    try {
+      this.players.timer_tick = createAudioPlayer(require('../../assets/sounds/timer_tick.wav'));
+    } catch(e) { console.warn('Failed to load timer_tick sound'); }
+    try {
+      this.players.timer_complete = createAudioPlayer(require('../../assets/sounds/timer_complete.wav'));
+    } catch(e) { console.warn('Failed to load timer_complete sound'); }
     
     try {
       // BGM
@@ -74,6 +80,43 @@ class SoundManager {
 
   playDungeonEnter() {
     this.playSound('dungeon_enter');
+  }
+
+  playTimerTick() {
+    this.playSound('timer_tick');
+  }
+
+  playTimerComplete() {
+    this.playSound('timer_complete');
+  }
+
+  playTimerCompleteLoop() {
+    try {
+      if (!this.isInitialized) {
+        this.init();
+      }
+      const player = this.players.timer_complete;
+      if (player) {
+        player.loop = true;
+        player.seekTo(0);
+        player.play();
+      }
+    } catch (e) {
+      console.error('Error looping timer_complete', e);
+    }
+  }
+
+  stopTimerComplete() {
+    try {
+      const player = this.players.timer_complete;
+      if (player) {
+        player.loop = false;
+        player.pause();
+        player.seekTo(0);
+      }
+    } catch (e) {
+      console.error('Error stopping timer_complete', e);
+    }
   }
 }
 

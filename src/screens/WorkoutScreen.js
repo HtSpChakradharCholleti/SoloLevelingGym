@@ -175,6 +175,16 @@ export default function WorkoutScreen({ navigation }) {
             </LinearGradient>
           </TouchableOpacity>
 
+          <TouchableOpacity
+            style={styles.stretchButton}
+            onPress={() => navigation.navigate('Stretching')}
+          >
+            <View style={styles.stretchButtonInner}>
+              <MaterialCommunityIcons name="yoga" size={18} color={COLORS.accent} />
+              <Text style={styles.stretchButtonText}>Stretch & Cooldown</Text>
+            </View>
+          </TouchableOpacity>
+
           <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
             <Text style={styles.cancelText}>Abandon Dungeon</Text>
           </TouchableOpacity>
@@ -371,5 +381,25 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.md,
     color: COLORS.danger,
     fontWeight: '500',
+  },
+  stretchButton: {
+    borderRadius: BORDER_RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.accent + '40',
+    overflow: 'hidden',
+  },
+  stretchButtonInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.sm,
+    paddingVertical: SPACING.md,
+    backgroundColor: COLORS.accentGlow,
+  },
+  stretchButtonText: {
+    fontFamily: FONTS.bodyMedium,
+    fontSize: FONT_SIZES.md,
+    fontWeight: '600',
+    color: COLORS.accent,
   },
 });

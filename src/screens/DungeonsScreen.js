@@ -67,6 +67,27 @@ export default function DungeonsScreen({ navigation }) {
             />
           ))}
         </View>
+
+        {/* Stretching Entry Point */}
+        <TouchableOpacity
+          style={styles.stretchEntry}
+          onPress={() => navigation.navigate('Stretching')}
+          activeOpacity={0.8}
+        >
+          <LinearGradient
+            colors={[COLORS.surface, COLORS.surfaceLight]}
+            style={styles.stretchEntryGradient}
+          >
+            <View style={styles.stretchEntryIcon}>
+              <MaterialCommunityIcons name="yoga" size={24} color={COLORS.accent} />
+            </View>
+            <View style={styles.stretchEntryInfo}>
+              <Text style={styles.stretchEntryTitle}>Stretch Timer</Text>
+              <Text style={styles.stretchEntrySub}>Push / Pull / Legs guided stretching</Text>
+            </View>
+            <MaterialCommunityIcons name="chevron-right" size={22} color={COLORS.textMuted} />
+          </LinearGradient>
+        </TouchableOpacity>
       </ScrollView>
 
       {/* Dungeon Detail Modal */}
@@ -342,5 +363,46 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#fff',
     letterSpacing: 1,
+  },
+
+  // ─── Stretch Entry ───────────────────────
+  stretchEntry: {
+    marginTop: SPACING.lg,
+    borderRadius: BORDER_RADIUS.lg,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: COLORS.surfaceBorder,
+  },
+  stretchEntryGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: SPACING.base,
+    borderRadius: BORDER_RADIUS.lg,
+  },
+  stretchEntryIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: BORDER_RADIUS.md,
+    backgroundColor: COLORS.accentGlow,
+    borderWidth: 1,
+    borderColor: COLORS.accent + '30',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: SPACING.md,
+  },
+  stretchEntryInfo: {
+    flex: 1,
+  },
+  stretchEntryTitle: {
+    fontFamily: FONTS.heading,
+    fontSize: FONT_SIZES.base,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    marginBottom: 2,
+  },
+  stretchEntrySub: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textMuted,
   },
 });

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, Dimensions, TouchableOpacity, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -9,14 +9,17 @@ import SystemPanel from '../components/SystemPanel';
 import StatBar from '../components/StatBar';
 import RankBadge from '../components/RankBadge';
 import NotificationManager from '../utils/NotificationManager';
+import WeightLogModal from '../components/WeightLogModal';
 
 const { width } = Dimensions.get('window');
 
-export default function HunterProfileScreen() {
+export default function HunterProfileScreen({ navigation }) {
   const {
     playerName, level, xp, rank, stats,
-    totalWorkouts, currentStreak, bestStreak,
+    totalWorkouts, currentStreak, bestStreak, weightHistory
   } = usePlayer();
+
+  const [isWeightModalVisible, setIsWeightModalVisible] = useState(false);
 
   const requiredXP = getRequiredXP(level);
   const progress = getLevelProgress(level, xp);
@@ -68,6 +71,34 @@ export default function HunterProfileScreen() {
               </View>
             </View>
             <Text style={styles.xpText}>{xp} / {requiredXP} XP</Text>
+
+            {/* Weight Actions */}
+            <View style={styles.weightActionsRow}>
+              <TouchableOpacity
+                style={styles.weightLogBtn}
+                onPress={() => setIsWeightModalVisible(true)}
+              >
+                <LinearGradient
+                  colors={[COLORS.accentDark, COLORS.accent]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.weightLogGradient}
+                >
+                  <MaterialCommunityIcons name="plus" size={18} color="#fff" />
+                  <Text style={styles.weightLogText}>LOG TODAY</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={styles.weightHistoryBtn}
+                onPress={() => navigation.navigate('WeightHistory')}
+              >
+                <View style={styles.weightHistoryBtnInner}>
+                  <MaterialCommunityIcons name="history" size={18} color={COLORS.textSecondary} />
+                  <Text style={styles.weightHistoryBtnText}>HISTORY</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </LinearGradient>
@@ -89,6 +120,46 @@ export default function HunterProfileScreen() {
           <Text style={styles.quickStatLabel}>Best Streak</Text>
         </View>
       </View>
+
+      {/* Daily Weight Tracker */}
+      <SystemPanel glowColor={COLORS.accent} style={{ marginBottom: SPACING.base }}>
+        <View style={styles.statsPanelHeader}>
+          <MaterialCommunityIcons name="scale-bathroom" size={18} color={COLORS.accent} />
+          <Text style={[styles.statsPanelTitle, { color: COLORS.accent }]}>DAILY WEIGHT</Text>
+        </View>
+
+        <View style={styles.weightCard}>
+          <View style={styles.weightInfoPrimary}>
+            {weightHistory.length > 0 ? (
+              <>
+                <Text style={styles.weightValueLarge}>
+                  {weightHistory[0].weight} <Text style={styles.weightUnit}>{weightHistory[0].unit}</Text>
+                </Text>
+                <Text style={styles.weightDateLabel}>
+                  Last logged: {weightHistory[0].date}
+                </Text>
+              </>
+            ) : (
+              <Text style={styles.weightDateLabel}>No weight logged yet</Text>
+            )}
+          </View>
+          {/* The logWeightBtn was moved to the header section */}
+        </View>
+
+        {weightHistory.length > 1 && (
+          <View style={styles.weightHistoryMini}>
+            <Text style={styles.historyMiniTitle}>Recent Logs</Text>
+            {weightHistory.slice(1, 4).map((entry, idx) => (
+              <View key={idx} style={styles.historyMiniRow}>
+                <Text style={styles.historyMiniDate}>{entry.date}</Text>
+                <Text style={styles.historyMiniValue}>
+                  {entry.weight} {entry.unit}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
+      </SystemPanel>
 
       {/* Stats Grid */}
       <SystemPanel glowColor={COLORS.primary}>
@@ -144,6 +215,11 @@ export default function HunterProfileScreen() {
           </TouchableOpacity>
         </View>
       </SystemPanel>
+
+      <WeightLogModal 
+        visible={isWeightModalVisible} 
+        onClose={() => setIsWeightModalVisible(false)} 
+      />
     </ScrollView>
   );
 }
@@ -239,6 +315,55 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body,
     fontSize: FONT_SIZES.xs,
     color: COLORS.textMuted,
+    marginBottom: SPACING.md, // Added margin to separate from new buttons
+  },
+  weightActionsRow: {
+    flexDirection: 'row',
+    width: '100%',
+    gap: SPACING.sm,
+    marginTop: SPACING.sm,
+  },
+  weightLogBtn: {
+    flex: 1,
+    borderRadius: BORDER_RADIUS.md,
+    overflow: 'hidden',
+  },
+  weightLogGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    gap: SPACING.xs,
+  },
+  weightLogText: {
+    fontFamily: FONTS.heading,
+    fontSize: FONT_SIZES.xs,
+    fontWeight: '700',
+    color: '#fff',
+    letterSpacing: 1,
+  },
+  weightHistoryBtn: {
+    flex: 1,
+    borderRadius: BORDER_RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceBorder,
+    backgroundColor: COLORS.surface,
+    overflow: 'hidden',
+  },
+  weightHistoryBtnInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: SPACING.sm,
+    gap: SPACING.xs,
+  },
+  weightHistoryBtnText: {
+    fontFamily: FONTS.heading,
+    fontSize: FONT_SIZES.xs,
+    fontWeight: '700',
+    color: COLORS.textSecondary,
+    letterSpacing: 1,
   },
   quickStatsRow: {
     flexDirection: 'row',
@@ -319,5 +444,66 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.sm,
     fontWeight: '700',
     letterSpacing: 1,
+  },
+
+  // Weight Log Styles
+  weightCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: COLORS.surface,
+    padding: SPACING.base,
+    borderRadius: BORDER_RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceBorder,
+    marginBottom: SPACING.base,
+  },
+  weightInfoPrimary: {
+    flex: 1,
+  },
+  weightValueLarge: {
+    fontFamily: FONTS.heading,
+    fontSize: FONT_SIZES.xxxl,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+  },
+  weightUnit: {
+    fontSize: FONT_SIZES.md,
+    color: COLORS.accent,
+  },
+  weightDateLabel: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textMuted,
+    marginTop: 2,
+  },
+  // Removed old logWeightBtn style as it's replaced by weightLogBtn
+  weightHistoryMini: {
+    marginTop: SPACING.xs,
+    paddingTop: SPACING.sm,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.surfaceBorder,
+  },
+  historyMiniTitle: {
+    fontFamily: FONTS.heading,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textSecondary,
+    marginBottom: SPACING.sm,
+    letterSpacing: 1,
+  },
+  historyMiniRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: SPACING.xs,
+  },
+  historyMiniDate: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+  },
+  historyMiniValue: {
+    fontFamily: FONTS.bodyMedium,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textPrimary,
   },
 });

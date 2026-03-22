@@ -38,6 +38,7 @@ const initialState = {
 
   // History
   workoutHistory: [],
+  weightHistory: [], // [{ date: 'YYYY-MM-DD', weight: number, unit: 'kg' }]
 
   // UI State
   showLevelUp: false,
@@ -62,6 +63,7 @@ const ActionTypes = {
   DISMISS_LEVEL_UP: 'DISMISS_LEVEL_UP',
   ADD_XP_TOAST: 'ADD_XP_TOAST',
   REMOVE_XP_TOAST: 'REMOVE_XP_TOAST',
+  LOG_WEIGHT: 'LOG_WEIGHT',
   RESET_ALL: 'RESET_ALL',
 };
 
@@ -223,6 +225,26 @@ function playerReducer(state, action) {
         xpToasts: state.xpToasts.filter(t => t.id !== action.payload),
       };
 
+    case ActionTypes.LOG_WEIGHT: {
+      const { weight, unit, date } = action.payload;
+      const newEntry = { weight, unit, date };
+      
+      const newHistory = [...(state.weightHistory || [])];
+      const existingIdx = newHistory.findIndex(entry => entry.date === date);
+      
+      if (existingIdx >= 0) {
+        newHistory[existingIdx] = newEntry;
+      } else {
+        newHistory.push(newEntry);
+        newHistory.sort((a, b) => new Date(b.date) - new Date(a.date)); // descending
+      }
+
+      return {
+        ...state,
+        weightHistory: newHistory,
+      };
+    }
+
     case ActionTypes.RESET_ALL:
       return { ...initialState, isLoaded: true };
 
@@ -370,6 +392,15 @@ export function PlayerProvider({ children }) {
     dispatch({ type: ActionTypes.SET_PLAYER_NAME, payload: name });
   }, []);
 
+  const logWeight = useCallback((weight, unit = 'kg') => {
+    const today = getTodayString();
+    SoundManager.playLevelUp(); // Play level up sound as reward for logging
+    dispatch({
+      type: ActionTypes.LOG_WEIGHT,
+      payload: { weight, unit, date: today }
+    });
+  }, []);
+
   const resetAll = useCallback(async () => {
     try {
       await AsyncStorage.removeItem(STORAGE_KEY);
@@ -381,6 +412,7 @@ export function PlayerProvider({ children }) {
 
   const value = {
     ...state,
+    weightHistory: state.weightHistory || [],
     gainXP,
     gainStatXP,
     completeQuest,
@@ -390,6 +422,7 @@ export function PlayerProvider({ children }) {
     cancelWorkout,
     dismissLevelUp,
     setPlayerName,
+    logWeight,
     resetAll,
   };
 

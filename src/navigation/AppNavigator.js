@@ -10,6 +10,8 @@ import DailyQuestsScreen from '../screens/DailyQuestsScreen';
 import DungeonsScreen from '../screens/DungeonsScreen';
 import WorkoutScreen from '../screens/WorkoutScreen';
 import HistoryScreen from '../screens/HistoryScreen';
+import StretchingScreen from '../screens/StretchingScreen';
+import WeightHistoryScreen from '../screens/WeightHistoryScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -124,6 +126,50 @@ export default function AppNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Main" component={MainTabs} />
+      <Stack.Screen
+        name="Stretching"
+        component={StretchingScreen}
+        options={{
+          headerShown: true,
+          headerTitle: 'STRETCH TIMER',
+          headerStyle: {
+            backgroundColor: COLORS.background,
+            elevation: 0,
+            shadowOpacity: 0,
+            borderBottomWidth: 1,
+            borderBottomColor: COLORS.surfaceBorder,
+          },
+          headerTintColor: COLORS.textPrimary,
+          headerTitleStyle: {
+            fontFamily: FONTS.heading,
+            fontSize: FONT_SIZES.lg,
+            fontWeight: '700',
+            letterSpacing: 1,
+          },
+        }}
+      />
+      <Stack.Screen
+        name="WeightHistory"
+        component={WeightHistoryScreen}
+        options={{
+          headerShown: true,
+          headerTitle: 'WEIGHT HISTORY',
+          headerStyle: {
+            backgroundColor: COLORS.background,
+            elevation: 0,
+            shadowOpacity: 0,
+            borderBottomWidth: 1,
+            borderBottomColor: COLORS.surfaceBorder,
+          },
+          headerTintColor: COLORS.textPrimary,
+          headerTitleStyle: {
+            fontFamily: FONTS.heading,
+            fontSize: FONT_SIZES.lg,
+            fontWeight: '700',
+            letterSpacing: 1,
+          },
+        }}
+      />
     </Stack.Navigator>
   );
 }

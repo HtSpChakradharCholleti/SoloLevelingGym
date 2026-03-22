@@ -69,8 +69,8 @@ export default function App() {
         initNotifications();
         const hasPermission = await NotificationManager.requestPermissions();
         if (hasPermission) {
-          // Schedule the daily workout reminder
-          await NotificationManager.scheduleWorkoutReminder();
+          // Schedule all daily system reminders (Workout, Water, Meals)
+          await NotificationManager.scheduleAllReminders();
         }
       };
       initAppNotifications();

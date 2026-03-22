@@ -30,21 +30,21 @@ export const COLORS = {
   warning: '#fadd60',
   warningGlow: 'rgba(250, 221, 96, 0.15)',
 
-  // Stat Colors - Refined pastel/metallic
-  statSTR: '#e27b68', // Muted rust/copper
-  statVIT: '#5ab08c', // Muted sage/jade
-  statAGI: '#68b1c1', // Muted steel blue
-  statEND: '#cba153', // Soft gold
-  statINT: '#8b7ece', // Muted violet
-  statPER: '#bfa780', // Soft sand/bronze
+  // Stat Colors - Consolidated to System Silver/Blue
+  statSTR: '#94a3b8',
+  statVIT: '#94a3b8',
+  statAGI: '#94a3b8',
+  statEND: '#94a3b8',
+  statINT: '#94a3b8',
+  statPER: '#94a3b8',
 
-  // Rank Colors - Metallic scheme
-  rankE: '#71717a', // Slate
-  rankD: '#869d85', // Oxidized copper
-  rankC: '#7588b4', // Soft blue steel
-  rankB: '#a384b6', // Amethyst
-  rankA: '#d46b45', // Crimson copper
-  rankS: '#eab308', // Pure Gold
+  // Rank Colors - Cohesive metallic progression
+  rankE: '#3f3f46', // Zinc-700
+  rankD: '#52525b', // Zinc-600
+  rankC: '#71717a', // Zinc-500
+  rankB: '#a1a1aa', // Zinc-400
+  rankA: '#d4d4d8', // Zinc-300
+  rankS: '#e8e8f0', // Primary Silver
 };
 
 export const RANK_COLORS = {
@@ -149,10 +149,10 @@ export const GRADIENTS = {
   accent: [COLORS.accentDark, COLORS.accent],
   surface: ['#121215', '#0a0a0c'], // Deep sleek background
   dark: ['#040405', '#121215'],
-  rankE: ['#3f3f46', '#71717a'],
-  rankD: ['#4b624a', '#869d85'],
-  rankC: ['#3e4f73', '#7588b4'],
-  rankB: ['#594366', '#a384b6'],
-  rankA: ['#8f3a1d', '#d46b45'],
-  rankS: ['#a16207', '#eab308'],
+  rankE: ['#18181b', '#3f3f46'],
+  rankD: ['#27272a', '#52525b'],
+  rankC: ['#3f3f46', '#71717a'],
+  rankB: ['#52525b', '#a1a1aa'],
+  rankA: ['#71717a', '#d4d4d8'],
+  rankS: ['#a1a1aa', '#e8e8f0'],
 };
