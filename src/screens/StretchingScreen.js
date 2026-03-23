@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Dimensions,
   Vibration,
+  AppState,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -49,6 +50,7 @@ export default function StretchingScreen({ navigation }) {
 
   const timerRef = useRef(null);
   const isSingleModeRef = useRef(false); // true when manually playing just one stretch
+  const endTimeRef = useRef(null); // wall-clock timestamp when timer should end
   const allStretches = getStretchesForDay(selectedDay);
 
   // Active session stretches (only selected ones)
@@ -79,26 +81,50 @@ export default function StretchingScreen({ navigation }) {
     }
   }, [isTimerActive, isPaused]);
 
-  // Timer logic
+  // Recalculate timer when app returns from background
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active' && isTimerActive && !isPaused && endTimeRef.current) {
+        const remaining = Math.ceil((endTimeRef.current - Date.now()) / 1000);
+        if (remaining <= 0) {
+          // Timer expired while in background — trigger alarm
+          if (timerRef.current) clearInterval(timerRef.current);
+          setTimeRemaining(0);
+          setIsRinging(true);
+          SoundManager.playTimerCompleteLoop();
+          Vibration.vibrate([0, 150, 200, 150, 200, 150], true);
+        } else {
+          setTimeRemaining(remaining);
+        }
+      }
+    });
+    return () => sub.remove();
+  }, [isTimerActive, isPaused]);
+
+  // Timer logic — uses wall-clock endTimeRef for accuracy
   useEffect(() => {
     if (isTimerActive && !isPaused && timeRemaining > 0) {
+      // Set the end time if not already set
+      if (!endTimeRef.current) {
+        endTimeRef.current = Date.now() + timeRemaining * 1000;
+      }
       timerRef.current = setInterval(() => {
-        setTimeRemaining((prev) => {
-          if (prev <= 1) {
-            clearInterval(timerRef.current);
-            setIsRinging(true);
-            SoundManager.playTimerCompleteLoop();
-            // Strong repeating vibration: buzz-pause pattern, repeats until dismissed
-            Vibration.vibrate([0, 500, 300, 500, 300, 500], true);
-            return 0;
-          }
-          // Tick sound at 3, 2, 1
-          if (prev <= 4 && prev > 1) {
-            SoundManager.playTimerTick();
-            Vibration.vibrate(100);
-          }
-          return prev - 1;
-        });
+        const remaining = Math.ceil((endTimeRef.current - Date.now()) / 1000);
+        if (remaining <= 0) {
+          clearInterval(timerRef.current);
+          setTimeRemaining(0);
+          setIsRinging(true);
+          SoundManager.playTimerCompleteLoop();
+          Vibration.vibrate([0, 150, 200, 150, 200, 150], true);
+          endTimeRef.current = null;
+          return;
+        }
+        setTimeRemaining(remaining);
+        // Tick sound at 3, 2, 1
+        if (remaining <= 3 && remaining > 0) {
+          SoundManager.playTimerTick();
+          Vibration.vibrate(100);
+        }
         setTotalTimeElapsed((prev) => prev + 1);
       }, 1000);
     }
@@ -130,6 +156,7 @@ export default function StretchingScreen({ navigation }) {
         setCurrentSide(null);
       }
       setTimeRemaining(nextStretch.duration);
+      endTimeRef.current = null; // Reset for new stretch timer
       return;
     }
 
@@ -137,6 +164,7 @@ export default function StretchingScreen({ navigation }) {
     if (currentStretch.sides && currentSide === 'left') {
       setCurrentSide('right');
       setTimeRemaining(currentStretch.duration);
+      endTimeRef.current = null; // Reset for other side
       return;
     }
 
@@ -207,6 +235,7 @@ export default function StretchingScreen({ navigation }) {
     setIsPaused(false);
     setIsRinging(false);
     isSingleModeRef.current = false; // Full session mode
+    endTimeRef.current = null; // Will be set by the timer useEffect
     setIsTimerActive(true);
     SoundManager.stopTimerComplete();
     SoundManager.playTap();
@@ -230,6 +259,7 @@ export default function StretchingScreen({ navigation }) {
     setIsPaused(false);
     setIsRinging(false);
     isSingleModeRef.current = true; // Single stretch mode — stop after this one
+    endTimeRef.current = null; // Will be set by the timer useEffect
     setIsTimerActive(true);
     SoundManager.stopTimerComplete();
     SoundManager.playTap();
@@ -238,7 +268,16 @@ export default function StretchingScreen({ navigation }) {
   };
 
   const togglePause = () => {
-    setIsPaused((prev) => !prev);
+    setIsPaused((prev) => {
+      if (!prev) {
+        // Pausing: clear endTimeRef
+        endTimeRef.current = null;
+      } else {
+        // Resuming: endTimeRef will be recalculated in the timer useEffect
+        endTimeRef.current = null;
+      }
+      return !prev;
+    });
     SoundManager.playTap();
   };
 
