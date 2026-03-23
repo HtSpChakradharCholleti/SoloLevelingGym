@@ -160,6 +160,42 @@ class NotificationManager {
     });
   }
 
+  static async scheduleTimerNotification(seconds, label = 'Stretch') {
+    try {
+      const id = await Notifications.scheduleNotificationAsync({
+        content: {
+          title: `⏱️ ${label} Complete!`,
+          body: 'Time is up! Tap to return to your session.',
+          sound: Platform.OS === 'ios' ? 'notif.wav' : 'notif',
+          android: {
+            channelId: 'system_alerts',
+          },
+        },
+        trigger: {
+          type: 'timeInterval',
+          seconds: Math.max(1, Math.floor(seconds)),
+          repeats: false,
+          channelId: 'system_alerts',
+        },
+      });
+      this._timerNotifId = id;
+      return id;
+    } catch (e) {
+      console.warn('Failed to schedule timer notification', e);
+    }
+  }
+
+  static async cancelTimerNotification() {
+    try {
+      if (this._timerNotifId) {
+        await Notifications.cancelScheduledNotificationAsync(this._timerNotifId);
+        this._timerNotifId = null;
+      }
+    } catch (e) {
+      console.warn('Failed to cancel timer notification', e);
+    }
+  }
+
   static async cancelAllNotifications() {
     await Notifications.cancelAllScheduledNotificationsAsync();
   }

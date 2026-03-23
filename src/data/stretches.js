@@ -204,6 +204,24 @@ export const STRETCHES = [
     icon: 'yoga',
     description: 'On all fours, alternate between arching (cow) and rounding (cat) your spine.',
   },
+  {
+    id: 'plank_hold',
+    day: 'general',
+    name: 'Plank Hold',
+    duration: 60,
+    sides: false,
+    icon: 'human',
+    description: 'Hold a high plank position. Keep hips level, core braced, don\'t let your lower back sag.',
+  },
+  {
+    id: 'forearm_plank',
+    day: 'general',
+    name: 'Forearm Plank',
+    duration: 45,
+    sides: false,
+    icon: 'human',
+    description: 'Hold a forearm plank. Elbows under shoulders, body in a straight line. Breathe steadily.',
+  },
 ];
 
 export const getStretchesForDay = (dayId) => {

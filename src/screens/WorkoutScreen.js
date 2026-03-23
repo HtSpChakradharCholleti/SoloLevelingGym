@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useKeepAwake } from 'expo-keep-awake';
 import { COLORS, STAT_COLORS, FONTS, FONT_SIZES, SPACING, BORDER_RADIUS } from '../theme';
 import { usePlayer } from '../store/PlayerContext';
 import SystemPanel from '../components/SystemPanel';
@@ -10,6 +11,7 @@ import XPToast from '../components/XPToast';
 
 export default function WorkoutScreen({ navigation }) {
   const { activeWorkout, completeExerciseSet, finishWorkout, cancelWorkout } = usePlayer();
+  useKeepAwake(); // Prevent screen from sleeping during workout
   const [elapsed, setElapsed] = useState(0);
   const [toasts, setToasts] = useState([]);
   const timerRef = useRef(null);

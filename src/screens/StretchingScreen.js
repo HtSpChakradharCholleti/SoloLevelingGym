@@ -26,6 +26,7 @@ import { COLORS, FONTS, FONT_SIZES, SPACING, BORDER_RADIUS, SHADOWS } from '../t
 import { STRETCH_DAYS, getStretchesForDay, getTotalTimeForDay } from '../data/stretches';
 import SystemPanel from '../components/SystemPanel';
 import SoundManager from '../utils/SoundManager';
+import NotificationManager from '../utils/NotificationManager';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const TIMER_SIZE = SCREEN_WIDTH * 0.55;
@@ -47,6 +48,7 @@ export default function StretchingScreen({ navigation }) {
   const [totalTimeElapsed, setTotalTimeElapsed] = useState(0);
 
   const timerRef = useRef(null);
+  const isSingleModeRef = useRef(false); // true when manually playing just one stretch
   const allStretches = getStretchesForDay(selectedDay);
 
   // Active session stretches (only selected ones)
@@ -86,6 +88,8 @@ export default function StretchingScreen({ navigation }) {
             clearInterval(timerRef.current);
             setIsRinging(true);
             SoundManager.playTimerCompleteLoop();
+            // Strong repeating vibration: buzz-pause pattern, repeats until dismissed
+            Vibration.vibrate([0, 500, 300, 500, 300, 500], true);
             return 0;
           }
           // Tick sound at 3, 2, 1
@@ -106,6 +110,15 @@ export default function StretchingScreen({ navigation }) {
   const handleTimerComplete = useCallback(() => {
     Vibration.vibrate(300);
     const currentStretch = sessionStretches[currentStretchIndex];
+
+    // If user manually played a single stretch, stop here — don't continue the sequence
+    if (isSingleModeRef.current) {
+      setIsTimerActive(false);
+      setIsComplete(true);
+      SoundManager.playTimerComplete();
+      Vibration.vibrate([0, 200, 100, 200, 100, 400]);
+      return;
+    }
 
     if (isResting) {
       // Rest is done, start next stretch
@@ -148,6 +161,8 @@ export default function StretchingScreen({ navigation }) {
   const dismissAlarm = () => {
     setIsRinging(false);
     SoundManager.stopTimerComplete();
+    Vibration.cancel(); // Stop repeating vibration
+    NotificationManager.cancelTimerNotification(); // Cancel the push notification
     handleTimerComplete();
   };
 
@@ -191,9 +206,12 @@ export default function StretchingScreen({ navigation }) {
     setIsResting(false);
     setIsPaused(false);
     setIsRinging(false);
+    isSingleModeRef.current = false; // Full session mode
     setIsTimerActive(true);
     SoundManager.stopTimerComplete();
     SoundManager.playTap();
+    // Schedule push notification for when the first stretch ends
+    NotificationManager.scheduleTimerNotification(firstStretch.duration, firstStretch.name);
   };
 
   // Start a single stretch directly
@@ -211,9 +229,12 @@ export default function StretchingScreen({ navigation }) {
     setIsResting(false);
     setIsPaused(false);
     setIsRinging(false);
+    isSingleModeRef.current = true; // Single stretch mode — stop after this one
     setIsTimerActive(true);
     SoundManager.stopTimerComplete();
     SoundManager.playTap();
+    // Schedule push notification for when the stretch ends
+    NotificationManager.scheduleTimerNotification(stretch.duration, stretch.name);
   };
 
   const togglePause = () => {
@@ -225,6 +246,7 @@ export default function StretchingScreen({ navigation }) {
     if (timerRef.current) clearInterval(timerRef.current);
     setIsRinging(false);
     SoundManager.stopTimerComplete();
+    NotificationManager.cancelTimerNotification(); // Cancel pending notification
 
     if (isResting) {
       setIsResting(false);
@@ -263,6 +285,8 @@ export default function StretchingScreen({ navigation }) {
     if (timerRef.current) clearInterval(timerRef.current);
     setIsRinging(false);
     SoundManager.stopTimerComplete();
+    NotificationManager.cancelTimerNotification(); // Cancel pending notification
+    Vibration.cancel();
     setIsTimerActive(false);
     setIsPaused(false);
     setCurrentStretchIndex(0);
