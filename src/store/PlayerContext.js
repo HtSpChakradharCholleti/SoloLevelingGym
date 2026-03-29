@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ToastAndroid, Platform } from 'react-native';
+import { storage, migrateFromAsyncStorage } from './storage';
 import { processXPGain, getRankForLevel, getStatLevel } from '../utils/leveling';
 import { generateDailyQuests, shouldResetQuests, getTodayString } from '../utils/quests';
 import SoundManager from '../utils/SoundManager';
@@ -295,7 +296,13 @@ export function PlayerProvider({ children }) {
 
   const loadState = async () => {
     try {
-      const saved = await AsyncStorage.getItem(STORAGE_KEY);
+      // One-time migration from AsyncStorage → MMKV
+      const didMigrate = await migrateFromAsyncStorage();
+      if (didMigrate && Platform.OS === 'android') {
+        ToastAndroid.show('Data migrated to faster storage ⚡', ToastAndroid.SHORT);
+      }
+
+      const saved = storage.getString(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
         dispatch({ type: ActionTypes.LOAD_STATE, payload: parsed });
@@ -308,14 +315,14 @@ export function PlayerProvider({ children }) {
     }
   };
 
-  const saveState = async (currentState) => {
+  const saveState = (currentState) => {
     try {
       const toSave = { ...currentState };
       delete toSave.isLoaded;
       delete toSave.showLevelUp;
       delete toSave.levelUpData;
       delete toSave.xpToasts;
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+      storage.set(STORAGE_KEY, JSON.stringify(toSave));
     } catch (e) {
       console.error('Failed to save state:', e);
     }
@@ -401,9 +408,9 @@ export function PlayerProvider({ children }) {
     });
   }, []);
 
-  const resetAll = useCallback(async () => {
+  const resetAll = useCallback(() => {
     try {
-      await AsyncStorage.removeItem(STORAGE_KEY);
+      storage.delete(STORAGE_KEY);
       dispatch({ type: ActionTypes.RESET_ALL });
     } catch (e) {
       console.error('Failed to reset:', e);
