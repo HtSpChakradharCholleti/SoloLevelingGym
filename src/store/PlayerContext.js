@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
-import { ToastAndroid, Platform } from 'react-native';
-import { storage, migrateFromAsyncStorage } from './storage';
+import { storage } from './storage';
 import { processXPGain, getRankForLevel, getStatLevel } from '../utils/leveling';
 import { generateDailyQuests, shouldResetQuests, getTodayString } from '../utils/quests';
 import SoundManager from '../utils/SoundManager';
@@ -294,14 +293,8 @@ export function PlayerProvider({ children }) {
     }
   }, [state.showLevelUp]);
 
-  const loadState = async () => {
+  const loadState = () => {
     try {
-      // One-time migration from AsyncStorage → MMKV
-      const didMigrate = await migrateFromAsyncStorage();
-      if (didMigrate && Platform.OS === 'android') {
-        ToastAndroid.show('Data migrated to faster storage ⚡', ToastAndroid.SHORT);
-      }
-
       const saved = storage.getString(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
