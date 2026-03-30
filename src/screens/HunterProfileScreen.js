@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, Dimensions, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Dimensions, TouchableOpacity, Alert, Switch } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS, STAT_COLORS, STAT_LABELS, STAT_DESCRIPTIONS, RANK_COLORS, FONTS, FONT_SIZES, SPACING, BORDER_RADIUS, SHADOWS, GRADIENTS } from '../theme';
@@ -16,7 +16,8 @@ const { width } = Dimensions.get('window');
 export default function HunterProfileScreen({ navigation }) {
   const {
     playerName, level, xp, rank, stats,
-    totalWorkouts, currentStreak, bestStreak, weightHistory
+    totalWorkouts, currentStreak, bestStreak, weightHistory,
+    settings, updateSetting,
   } = usePlayer();
 
   const [isWeightModalVisible, setIsWeightModalVisible] = useState(false);
@@ -213,6 +214,52 @@ export default function HunterProfileScreen({ navigation }) {
             <MaterialCommunityIcons name="bell-off" size={20} color={COLORS.error} />
             <Text style={[styles.actionButtonText, { color: COLORS.error }]}>Clear All Reminders</Text>
           </TouchableOpacity>
+        </View>
+      </SystemPanel>
+
+      {/* Settings */}
+      <SystemPanel glowColor={COLORS.textMuted} style={{ marginTop: SPACING.lg }}>
+        <View style={styles.statsPanelHeader}>
+          <MaterialCommunityIcons name="cog" size={18} color={COLORS.textSecondary} />
+          <Text style={[styles.statsPanelTitle, { color: COLORS.textSecondary }]}>SETTINGS</Text>
+        </View>
+
+        <View style={styles.settingsContainer}>
+          <View style={styles.settingRow}>
+            <View style={styles.settingInfo}>
+              <MaterialCommunityIcons name="animation-play" size={20} color={COLORS.accent} />
+              <View style={styles.settingTextWrap}>
+                <Text style={styles.settingLabel}>Animations</Text>
+                <Text style={styles.settingDesc}>UI transition effects</Text>
+              </View>
+            </View>
+            <Switch
+              value={settings?.animationsEnabled ?? true}
+              onValueChange={(val) => updateSetting('animationsEnabled', val)}
+              trackColor={{ false: COLORS.surfaceBorder, true: COLORS.accent + '80' }}
+              thumbColor={settings?.animationsEnabled ? COLORS.accent : COLORS.textMuted}
+              ios_backgroundColor={COLORS.surfaceBorder}
+            />
+          </View>
+
+          <View style={styles.settingDivider} />
+
+          <View style={styles.settingRow}>
+            <View style={styles.settingInfo}>
+              <MaterialCommunityIcons name="music" size={20} color={COLORS.accent} />
+              <View style={styles.settingTextWrap}>
+                <Text style={styles.settingLabel}>Background Music</Text>
+                <Text style={styles.settingDesc}>Ambient BGM during use</Text>
+              </View>
+            </View>
+            <Switch
+              value={settings?.bgmEnabled ?? true}
+              onValueChange={(val) => updateSetting('bgmEnabled', val)}
+              trackColor={{ false: COLORS.surfaceBorder, true: COLORS.accent + '80' }}
+              thumbColor={settings?.bgmEnabled ? COLORS.accent : COLORS.textMuted}
+              ios_backgroundColor={COLORS.surfaceBorder}
+            />
+          </View>
         </View>
       </SystemPanel>
 
@@ -444,6 +491,47 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.sm,
     fontWeight: '700',
     letterSpacing: 1,
+  },
+
+  // Settings
+  settingsContainer: {
+    backgroundColor: COLORS.surface,
+    borderRadius: BORDER_RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceBorder,
+    overflow: 'hidden',
+  },
+  settingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: SPACING.base,
+  },
+  settingInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: SPACING.md,
+  },
+  settingTextWrap: {
+    flex: 1,
+  },
+  settingLabel: {
+    fontFamily: FONTS.bodyMedium,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.textPrimary,
+    fontWeight: '600',
+  },
+  settingDesc: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textMuted,
+    marginTop: 1,
+  },
+  settingDivider: {
+    height: 1,
+    backgroundColor: COLORS.surfaceBorder,
+    marginHorizontal: SPACING.base,
   },
 
   // Weight Log Styles

@@ -1,18 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, ScrollView, FlatList, StyleSheet, TouchableOpacity, Modal } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS, STAT_COLORS, RANK_COLORS, FONTS, FONT_SIZES, SPACING, BORDER_RADIUS } from '../theme';
 import { DUNGEONS, getExercisesForDungeon } from '../data/exercises';
 import { usePlayer } from '../store/PlayerContext';
+import { getWorkoutSuggestion } from '../utils/suggestions';
 import DungeonCard from '../components/DungeonCard';
 import SystemPanel from '../components/SystemPanel';
 import SoundManager from '../utils/SoundManager';
 
 export default function DungeonsScreen({ navigation }) {
-  const { startWorkout } = usePlayer();
+  const { startWorkout, workoutHistory, stats } = usePlayer();
   const [selectedDungeon, setSelectedDungeon] = useState(null);
   const [selectedExercises, setSelectedExercises] = useState([]);
+
+  // Compute workout suggestion
+  const suggestion = useMemo(
+    () => getWorkoutSuggestion(workoutHistory, stats),
+    [workoutHistory, stats]
+  );
 
   const openDungeon = (dungeon) => {
     SoundManager.playTap();
@@ -55,6 +62,61 @@ export default function DungeonsScreen({ navigation }) {
             Choose a dungeon to begin your training. Each dungeon targets different stats.
           </Text>
         </SystemPanel>
+
+        {/* Today's Suggestion */}
+        {suggestion && suggestion.dungeon && (
+          <TouchableOpacity
+            style={styles.suggestionCard}
+            onPress={() => openDungeon(suggestion.dungeon)}
+            activeOpacity={0.85}
+          >
+            <LinearGradient
+              colors={[COLORS.accentGlow, COLORS.surface]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.suggestionGradient}
+            >
+              <View style={styles.suggestionHeader}>
+                <View style={styles.suggestionBadge}>
+                  <MaterialCommunityIcons name="compass" size={14} color={COLORS.accent} />
+                  <Text style={styles.suggestionBadgeText}>SYSTEM SUGGESTION</Text>
+                </View>
+                {suggestion.daysSinceLastWorked !== null && (
+                  <Text style={styles.suggestionDays}>
+                    {suggestion.daysSinceLastWorked === 0
+                      ? 'Today'
+                      : suggestion.daysSinceLastWorked === 1
+                      ? '1 day ago'
+                      : `${suggestion.daysSinceLastWorked}d ago`}
+                  </Text>
+                )}
+              </View>
+
+              <View style={styles.suggestionBody}>
+                <View style={[
+                  styles.suggestionIcon,
+                  { borderColor: (STAT_COLORS[suggestion.dungeon.stat] || COLORS.accent) + '40' }
+                ]}>
+                  <MaterialCommunityIcons
+                    name={suggestion.dungeon.icon}
+                    size={28}
+                    color={STAT_COLORS[suggestion.dungeon.stat] || COLORS.accent}
+                  />
+                </View>
+                <View style={styles.suggestionInfo}>
+                  <Text style={styles.suggestionName}>{suggestion.dungeon.name}</Text>
+                  <Text style={styles.suggestionSub}>{suggestion.dungeon.subtitle}</Text>
+                  <Text style={styles.suggestionReason} numberOfLines={2}>
+                    {suggestion.reason}
+                  </Text>
+                </View>
+                <View style={styles.suggestionArrow}>
+                  <MaterialCommunityIcons name="chevron-right" size={24} color={COLORS.accent} />
+                </View>
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
 
         {/* Dungeon Grid */}
         <View style={styles.grid}>
@@ -363,6 +425,85 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#fff',
     letterSpacing: 1,
+  },
+
+  // ─── Suggestion Card ──────────────────────
+  suggestionCard: {
+    marginTop: SPACING.base,
+    borderRadius: BORDER_RADIUS.lg,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: COLORS.accent + '30',
+  },
+  suggestionGradient: {
+    padding: SPACING.base,
+    borderRadius: BORDER_RADIUS.lg,
+  },
+  suggestionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING.md,
+  },
+  suggestionBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+    backgroundColor: COLORS.accent + '20',
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xs,
+    borderRadius: BORDER_RADIUS.round,
+  },
+  suggestionBadgeText: {
+    fontFamily: FONTS.heading,
+    fontSize: FONT_SIZES.xs,
+    fontWeight: '700',
+    color: COLORS.accent,
+    letterSpacing: 1.5,
+  },
+  suggestionDays: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textMuted,
+  },
+  suggestionBody: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  suggestionIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: BORDER_RADIUS.md,
+    backgroundColor: COLORS.surfaceLight,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: SPACING.md,
+  },
+  suggestionInfo: {
+    flex: 1,
+  },
+  suggestionName: {
+    fontFamily: FONTS.heading,
+    fontSize: FONT_SIZES.lg,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    marginBottom: 1,
+  },
+  suggestionSub: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+    marginBottom: SPACING.xs,
+  },
+  suggestionReason: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.accent,
+    fontStyle: 'italic',
+  },
+  suggestionArrow: {
+    marginLeft: SPACING.sm,
   },
 
   // ─── Stretch Entry ───────────────────────

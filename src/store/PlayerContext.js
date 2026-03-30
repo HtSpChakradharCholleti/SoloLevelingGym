@@ -45,6 +45,12 @@ const initialState = {
   levelUpData: null,
   xpToasts: [],
 
+  // Settings
+  settings: {
+    animationsEnabled: true,
+    bgmEnabled: true,
+  },
+
   // Loaded
   isLoaded: false,
 };
@@ -65,6 +71,7 @@ const ActionTypes = {
   REMOVE_XP_TOAST: 'REMOVE_XP_TOAST',
   LOG_WEIGHT: 'LOG_WEIGHT',
   RESET_ALL: 'RESET_ALL',
+  SET_SETTING: 'SET_SETTING',
 };
 
 function playerReducer(state, action) {
@@ -248,6 +255,17 @@ function playerReducer(state, action) {
     case ActionTypes.RESET_ALL:
       return { ...initialState, isLoaded: true };
 
+    case ActionTypes.SET_SETTING: {
+      const { key, value } = action.payload;
+      return {
+        ...state,
+        settings: {
+          ...state.settings,
+          [key]: value,
+        },
+      };
+    }
+
     default:
       return state;
   }
@@ -299,6 +317,10 @@ export function PlayerProvider({ children }) {
       if (saved) {
         const parsed = JSON.parse(saved);
         dispatch({ type: ActionTypes.LOAD_STATE, payload: parsed });
+        // Sync BGM state with saved settings
+        if (parsed.settings?.bgmEnabled === false) {
+          SoundManager.pauseBGM();
+        }
       } else {
         dispatch({ type: ActionTypes.LOAD_STATE, payload: {} });
       }
@@ -401,6 +423,18 @@ export function PlayerProvider({ children }) {
     });
   }, []);
 
+  const updateSetting = useCallback((key, value) => {
+    dispatch({ type: ActionTypes.SET_SETTING, payload: { key, value } });
+    // Handle BGM toggle immediately
+    if (key === 'bgmEnabled') {
+      if (value) {
+        SoundManager.resumeBGM();
+      } else {
+        SoundManager.pauseBGM();
+      }
+    }
+  }, []);
+
   const resetAll = useCallback(() => {
     try {
       storage.delete(STORAGE_KEY);
@@ -423,6 +457,7 @@ export function PlayerProvider({ children }) {
     dismissLevelUp,
     setPlayerName,
     logWeight,
+    updateSetting,
     resetAll,
   };
 

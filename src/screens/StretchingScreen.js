@@ -9,6 +9,7 @@ import {
   Vibration,
   AppState,
 } from 'react-native';
+import { useKeepAwake } from 'expo-keep-awake';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated, {
@@ -28,6 +29,7 @@ import { STRETCH_DAYS, getStretchesForDay, getTotalTimeForDay } from '../data/st
 import SystemPanel from '../components/SystemPanel';
 import SoundManager from '../utils/SoundManager';
 import NotificationManager from '../utils/NotificationManager';
+import { usePlayer } from '../store/PlayerContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const TIMER_SIZE = SCREEN_WIDTH * 0.55;
@@ -36,6 +38,9 @@ const CIRCLE_STROKE = 6;
 const REST_BETWEEN_STRETCHES = 5; // seconds
 
 export default function StretchingScreen({ navigation }) {
+  useKeepAwake(); // Prevent screen from sleeping during stretching
+  const { settings } = usePlayer();
+  const animationsEnabled = settings?.animationsEnabled ?? true;
   const [selectedDay, setSelectedDay] = useState('push');
   const [selectedStretchIds, setSelectedStretchIds] = useState(new Set());
   const [isTimerActive, setIsTimerActive] = useState(false);
@@ -67,7 +72,7 @@ export default function StretchingScreen({ navigation }) {
 
   // Pulse animation for active timer
   useEffect(() => {
-    if (isTimerActive && !isPaused) {
+    if (isTimerActive && !isPaused && animationsEnabled) {
       pulseScale.value = withRepeat(
         withSequence(
           withTiming(1.03, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
@@ -79,7 +84,7 @@ export default function StretchingScreen({ navigation }) {
     } else {
       pulseScale.value = withTiming(1, { duration: 300 });
     }
-  }, [isTimerActive, isPaused]);
+  }, [isTimerActive, isPaused, animationsEnabled]);
 
   // Recalculate timer when app returns from background
   useEffect(() => {
@@ -361,7 +366,7 @@ export default function StretchingScreen({ navigation }) {
     return (
       <View style={styles.container}>
         <ScrollView contentContainerStyle={styles.completionContent}>
-          <Animated.View entering={FadeInDown.duration(600)} style={styles.completionCard}>
+          <Animated.View entering={animationsEnabled ? FadeInDown.duration(600) : undefined} style={styles.completionCard}>
             <LinearGradient
               colors={[COLORS.surface, COLORS.surfaceLight]}
               style={styles.completionGradient}
@@ -421,7 +426,7 @@ export default function StretchingScreen({ navigation }) {
       <View style={styles.container}>
         <ScrollView contentContainerStyle={styles.timerContent}>
           {/* Progress indicator */}
-          <Animated.View entering={FadeIn.duration(400)}>
+          <Animated.View entering={animationsEnabled ? FadeIn.duration(400) : undefined}>
             <View style={styles.progressIndicator}>
               <Text style={styles.progressText}>
                 {isResting
@@ -485,7 +490,7 @@ export default function StretchingScreen({ navigation }) {
 
           {/* Side indicator */}
           {sideLabel && !isResting && (
-            <Animated.View entering={FadeInUp.duration(300)} style={styles.sideIndicator}>
+            <Animated.View entering={animationsEnabled ? FadeInUp.duration(300) : undefined} style={styles.sideIndicator}>
               <LinearGradient
                 colors={[COLORS.accentDark + '60', COLORS.accent + '30']}
                 start={{ x: 0, y: 0 }}
@@ -499,7 +504,7 @@ export default function StretchingScreen({ navigation }) {
 
           {/* Stretch Info */}
           {!isResting && (
-            <Animated.View entering={FadeInDown.duration(400)}>
+            <Animated.View entering={animationsEnabled ? FadeInDown.duration(400) : undefined}>
               <SystemPanel>
                 <Text style={styles.activeStretchName}>{currentStretch.name}</Text>
                 <Text style={styles.activeStretchDesc}>{currentStretch.description}</Text>
@@ -520,7 +525,7 @@ export default function StretchingScreen({ navigation }) {
 
           {/* Next Up Preview */}
           {isResting && currentStretchIndex < sessionStretches.length && (
-            <Animated.View entering={FadeInDown.duration(400)}>
+            <Animated.View entering={animationsEnabled ? FadeInDown.duration(400) : undefined}>
               <SystemPanel>
                 <Text style={styles.nextUpLabel}>NEXT UP</Text>
                 <Text style={styles.activeStretchName}>
@@ -667,8 +672,8 @@ export default function StretchingScreen({ navigation }) {
           return (
             <Animated.View
               key={stretch.id}
-              entering={FadeInDown.delay(index * 60).duration(400)}
-              layout={Layout.duration(300)}
+              entering={animationsEnabled ? FadeInDown.delay(index * 60).duration(400) : undefined}
+              layout={animationsEnabled ? Layout.duration(300) : undefined}
             >
               <View style={[styles.stretchCard, SHADOWS.soft, !isSelected && styles.stretchCardDeselected]}>
                 <View style={[styles.stretchCardInner, SHADOWS.inner]}>

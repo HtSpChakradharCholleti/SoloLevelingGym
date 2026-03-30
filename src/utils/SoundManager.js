@@ -38,16 +38,41 @@ class SoundManager {
 
       this.appStateSubscription = AppState.addEventListener('change', (nextAppState) => {
         if (nextAppState === 'active') {
-          this.players.bgm.play();
+          if (this.bgmEnabled) {
+            this.players.bgm.play();
+          }
         } else {
           this.players.bgm.pause();
         }
       });
 
       this.isInitialized = true;
+      this.bgmEnabled = true;
       console.log('expo-audio sounds initialized successfully');
     } catch (error) {
       console.error('Failed to initialize sounds', error);
+    }
+  }
+
+  pauseBGM() {
+    try {
+      if (this.players.bgm) {
+        this.players.bgm.pause();
+      }
+      this.bgmEnabled = false;
+    } catch (e) {
+      console.error('Error pausing BGM', e);
+    }
+  }
+
+  resumeBGM() {
+    try {
+      if (this.players.bgm) {
+        this.players.bgm.play();
+      }
+      this.bgmEnabled = true;
+    } catch (e) {
+      console.error('Error resuming BGM', e);
     }
   }
 
