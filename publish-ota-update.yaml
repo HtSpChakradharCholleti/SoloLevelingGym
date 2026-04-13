@@ -1,0 +1,248 @@
+name: Deploy OTA Update
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_DEFAULT_REGION: us-east-1
+      S3_URL: http://localhost:4566
+      BUCKET_NAME: solo-leveling-ota-updates
+      PARALLEL_JOBS: 4
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Read OTA config
+        run: |
+          CONFIG_FILE=ota-update-config.json
+          
+          if [ ! -f "$CONFIG_FILE" ]; then
+            echo "ATTENTION: ota-update-config.json not found"
+            exit 1
+          fi
+          
+          echo "PLATFORMS=$(jq -r '.platforms | to_entries[] | select(.value==true) | .key' $CONFIG_FILE | xargs)" >> $GITHUB_ENV
+          
+          echo "CHANNELS=$(jq -r '.channels | to_entries[] | select(.value==true) | .key' $CONFIG_FILE | xargs)" >> $GITHUB_ENV
+          
+          echo "SHOULD_FORCE_UPDATE=$(jq -r '.shouldForceUpdate' $CONFIG_FILE)" >> $GITHUB_ENV
+          echo "MESSAGE=$(jq -r '.message' $CONFIG_FILE)" >> $GITHUB_ENV
+          echo "ROLLBACK=$(jq -r '.rollback // false' $CONFIG_FILE)" >> $GITHUB_ENV
+          
+          echo "TARGET_VERSIONS=$(jq -r '.targetVersions[]' $CONFIG_FILE | xargs)" >> $GITHUB_ENV
+
+      # -------------------------
+      # Validate env
+      # -------------------------
+      - name: Validate config
+        run: |
+          for VAR in PLATFORMS CHANNELS TARGET_VERSIONS; do
+            if [ -z "${!VAR}" ]; then
+              echo "ATTENTION: $VAR is not set or empty"
+              exit 1
+            fi
+          done
+
+          if [ "$ROLLBACK" != "true" ] && [ -z "$MESSAGE" ]; then
+            echo "ATTENTION: MESSAGE is not set or empty"
+            exit 1
+          fi
+
+      - name: Prepare Yarn
+        if: env.ROLLBACK != 'true'
+        run: |
+          corepack enable
+          corepack prepare yarn@1.22.22 --activate
+
+      - name: Get Yarn cache directory
+        if: env.ROLLBACK != 'true'
+        id: yarn-cache-dir
+        run: echo "dir=$(yarn cache dir)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore dependencies cache
+        if: env.ROLLBACK != 'true'
+        id: deps-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ${{ steps.yarn-cache-dir.outputs.dir }}
+            node_modules
+          key: ${{ runner.os }}-node20-yarn1-${{ hashFiles('yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-node20-yarn1-
+
+      - name: Install dependencies
+        if: env.ROLLBACK != 'true' && steps.deps-cache.outputs.cache-hit != 'true'
+        run: |
+          yarn install
+
+      - name: Save dependencies cache
+        if: env.ROLLBACK != 'true' && steps.deps-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ${{ steps.yarn-cache-dir.outputs.dir }}
+            node_modules
+          key: ${{ steps.deps-cache.outputs.cache-primary-key }}
+
+      # -------------------------
+      # Package bundles
+      # -------------------------
+      - name: Build OTA bundles
+        if: env.ROLLBACK != 'true'
+        run: |
+          for PLATFORM in $PLATFORMS; do
+            echo "🚀 Building bundle for $PLATFORM"
+            npx hot-updater deploy -p $PLATFORM -f -m "$MESSAGE" -t 1.*.*
+          done
+
+      # -------------------------
+      # Install AWS CLI
+      # -------------------------
+      - name: Install AWS CLI
+        run: |
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip" -o "awscliv2.zip"
+          unzip awscliv2.zip > /dev/null
+          sudo ./aws/install
+
+      # -------------------------
+      # Extract bundle hash and add fileUrl to metadata
+      # -------------------------
+      - name: Read bundle metadata
+        if: env.ROLLBACK != 'true'
+        id: bundle_meta
+        run: |
+          for PLATFORM in $PLATFORMS; do
+            HASH=$(jq -r '.id' ".hot-updater/output/bundle/${PLATFORM}.json")
+            echo "${PLATFORM^^}_HASH=$HASH" >> $GITHUB_ENV
+          done
+
+      # -------------------------
+      # Upload bundles
+      # -------------------------
+      - name: Upload bundles
+        if: env.ROLLBACK != 'true'
+        run: |
+          for PLATFORM in $PLATFORMS; do
+            for CHANNEL in $CHANNELS; do
+              for VERSION in $TARGET_VERSIONS; do
+                echo "$PLATFORM|$CHANNEL|$VERSION"
+              done
+            done
+          done | xargs -P "$PARALLEL_JOBS" -I {} bash -c '
+            IFS="|" read -r PLATFORM CHANNEL VERSION <<< "$1"
+            HASH_VAR="${PLATFORM^^}_HASH"
+            HASH="${!HASH_VAR}"
+
+            if [ -z "$HASH" ]; then
+              echo "ATTENTION: Bundle hash for $PLATFORM is empty"
+              exit 1
+            fi
+
+            echo "Uploading bundle → $PLATFORM / $CHANNEL / $VERSION"
+            aws s3 cp \
+              ".hot-updater/output/bundle/$PLATFORM.zip" \
+              "s3://$BUCKET_NAME/$PLATFORM/$CHANNEL/$VERSION/bundles/${HASH}.zip" \
+              --endpoint-url "$S3_URL"
+          ' _ {}
+
+      # -------------------------
+      # Backup update.json
+      # -------------------------
+      - name: Backup update.json
+        run: |
+          for PLATFORM in $PLATFORMS; do
+            for CHANNEL in $CHANNELS; do
+              for VERSION in $TARGET_VERSIONS; do
+                echo "$PLATFORM|$CHANNEL|$VERSION"
+              done
+            done
+          done | xargs -P "$PARALLEL_JOBS" -I {} bash -c '
+            IFS="|" read -r PLATFORM CHANNEL VERSION <<< "$1"
+            UPDATE_FILE="s3://$BUCKET_NAME/$PLATFORM/$CHANNEL/$VERSION/update.json"
+
+            if aws s3 ls "$UPDATE_FILE" --endpoint-url "$S3_URL" > /dev/null 2>&1; then
+              TS=$(date +"%Y%m%d%H%M%S")
+              aws s3 mv \
+                "$UPDATE_FILE" \
+                "s3://$BUCKET_NAME/$PLATFORM/$CHANNEL/$VERSION/history/update_$TS.json" \
+                --endpoint-url "$S3_URL"
+            fi
+          ' _ {}
+
+      # -------------------------
+      # Upload update.json
+      # -------------------------
+      - name: Upload update.json
+        if: env.ROLLBACK != 'true'
+        run: |
+          for PLATFORM in $PLATFORMS; do
+            for CHANNEL in $CHANNELS; do
+              for VERSION in $TARGET_VERSIONS; do
+                echo "$PLATFORM|$CHANNEL|$VERSION"
+              done
+            done
+          done | xargs -P "$PARALLEL_JOBS" -I {} bash -c '
+            IFS="|" read -r PLATFORM CHANNEL VERSION <<< "$1"
+            HASH_VAR="${PLATFORM^^}_HASH"
+            HASH="${!HASH_VAR}"
+
+            if [ -z "$HASH" ]; then
+              echo "ATTENTION: Bundle hash for $PLATFORM is empty"
+              exit 1
+            fi
+
+            METADATA_FILE=".hot-updater/output/bundle/$PLATFORM.json"
+            TMP_METADATA="$(mktemp)"
+            FILE_URL="$S3_URL/$BUCKET_NAME/$PLATFORM/$CHANNEL/$VERSION/bundles/${HASH}.zip"
+
+            jq --arg url "$FILE_URL" ".fileUrl = \$url" "$METADATA_FILE" > "$TMP_METADATA"
+
+            echo "Uploading update.json → $PLATFORM / $CHANNEL / $VERSION"
+            aws s3 cp \
+              "$TMP_METADATA" \
+              "s3://$BUCKET_NAME/$PLATFORM/$CHANNEL/$VERSION/update.json" \
+              --endpoint-url "$S3_URL"
+
+            rm -f "$TMP_METADATA"
+          ' _ {}
+
+      # -------------------------
+      # Upload rollback update.json
+      # -------------------------
+      - name: Upload rollback update.json
+        if: env.ROLLBACK == 'true'
+        run: |
+          for PLATFORM in $PLATFORMS; do
+            for CHANNEL in $CHANNELS; do
+              for VERSION in $TARGET_VERSIONS; do
+                echo "$PLATFORM|$CHANNEL|$VERSION"
+              done
+            done
+          done | xargs -P "$PARALLEL_JOBS" -I {} bash -c '
+            IFS="|" read -r PLATFORM CHANNEL VERSION <<< "$1"
+            TMP_METADATA="$(mktemp)"
+
+            jq -n \
+              --arg id "00000000-0000-0000-0000-000000000000" \
+              ". = {id: \$id, status: \"ROLLBACK\", fileUrl: null}" > "$TMP_METADATA"
+
+            echo "Uploading rollback update.json -> $PLATFORM / $CHANNEL / $VERSION"
+            aws s3 cp \
+              "$TMP_METADATA" \
+              "s3://$BUCKET_NAME/$PLATFORM/$CHANNEL/$VERSION/update.json" \
+              --endpoint-url "$S3_URL"
+
+            rm -f "$TMP_METADATA"
+          ' _ {}
+

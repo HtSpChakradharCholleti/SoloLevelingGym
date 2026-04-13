@@ -1,0 +1,17 @@
+{
+  "platforms": {
+    "android": true,
+    "ios": false
+  },
+  "channels": {
+    "production": false,
+    "staging": false,
+    "qa": false,
+    "development": false,
+    "local": true
+  },
+  "targetVersions": ["1.0.0"],
+  "message": "Fixed cross-platform layout bug",
+  "enableSigning": false,
+  "rollback": false
+}

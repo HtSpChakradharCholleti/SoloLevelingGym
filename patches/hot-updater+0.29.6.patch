@@ -1,0 +1,13 @@
+diff --git a/node_modules/hot-updater/dist/index.cjs b/node_modules/hot-updater/dist/index.cjs
+index 9be6911..bc300e5 100755
+--- a/node_modules/hot-updater/dist/index.cjs
++++ b/node_modules/hot-updater/dist/index.cjs
+@@ -35276,7 +35276,7 @@ const deploy = async (options) => {
+ 	const normalizeOutputPath = path.default.isAbsolute(outputPath) ? outputPath : path.default.join(cwd, outputPath);
+ 	const compressStrategy = config.compressStrategy;
+ 	const bundleExtension = getExtensionFromCompressStrategy(compressStrategy);
+-	const bundlePath = path.default.join(normalizeOutputPath, "bundle", `bundle${bundleExtension}`);
++	const bundlePath = path.default.join(normalizeOutputPath, "bundle", `${platform}${bundleExtension}`);
+ 	const [buildPlugin, storagePlugin, databasePlugin] = await Promise.all([
+ 		config.build({ cwd }),
+ 		config.storage(),

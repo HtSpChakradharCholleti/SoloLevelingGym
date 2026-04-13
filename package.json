@@ -2,17 +2,26 @@
   "name": "sololevelinggym",
   "version": "1.0.0",
   "main": "index.js",
+  "private": true,
   "scripts": {
     "start": "expo start",
+    "start:local": "WITH_ROZENITE=true APP_ENV=local expo start",
+    "start:production": "WITH_ROZENITE=true APP_ENV=production expo start",
     "android": "expo run:android",
+    "android:local": "WITH_ROZENITE=true APP_ENV=local expo run:android",
+    "android:production": "WITH_ROZENITE=true APP_ENV=production expo run:android",
+    "build:local": "cd android && APP_ENV=local ./gradlew assembleRelease",
+    "build:production": "cd android && APP_ENV=production ./gradlew assembleRelease",
     "ios": "expo run:ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "postinstall": "patch-package"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",
     "@expo-google-fonts/outfit": "^0.4.3",
     "@expo-google-fonts/rajdhani": "^0.4.1",
     "@expo/vector-icons": "^15.1.1",
+    "@hot-updater/react-native": "0.29.6",
     "@react-navigation/bottom-tabs": "^7.15.6",
     "@react-navigation/native": "^7.1.34",
     "@react-navigation/stack": "^7.8.6",
@@ -27,8 +36,9 @@
     "expo-status-bar": "~55.0.4",
     "expo-system-ui": "~55.0.10",
     "react": "19.2.0",
-    "react-native": "0.83.2",
-    "react-native-gesture-handler": "^2.30.0",
+    "react-native": "0.83.4",
+    "react-native-device-info": "^15.0.2",
+    "react-native-gesture-handler": "~2.30.0",
     "react-native-mmkv": "^4.3.0",
     "react-native-nitro-modules": "^0.35.2",
     "react-native-reanimated": "4.2.1",
@@ -36,5 +46,14 @@
     "react-native-screens": "~4.23.0",
     "react-native-worklets": "0.7.2"
   },
-  "private": true
+  "devDependencies": {
+    "@hot-updater/expo": "0.29.6",
+    "@types/react": "~19.2.10",
+    "babel-plugin-transform-remove-console": "^6.9.4",
+    "dotenv": "^17.4.1",
+    "hot-updater": "0.29.6",
+    "patch-package": "^8.0.1",
+    "react-native-dotenv": "^3.4.11",
+    "typescript": "~5.9.2"
+  }
 }
