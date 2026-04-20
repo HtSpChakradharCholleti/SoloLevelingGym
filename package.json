@@ -49,6 +49,7 @@
   "devDependencies": {
     "@hot-updater/expo": "0.29.6",
     "@types/react": "~19.2.10",
+    "babel-plugin-react-compiler": "^19.0.0-beta-af1b7da-20250417",
     "babel-plugin-transform-remove-console": "^6.9.4",
     "hot-updater": "0.29.6",
     "patch-package": "^8.0.1",

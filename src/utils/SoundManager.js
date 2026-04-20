@@ -6,6 +6,7 @@ class SoundManager {
     this.players = {};
     this.isInitialized = false;
     this.appStateSubscription = null;
+    this.bgmEnabled = true;
   }
 
   init() {
@@ -34,7 +35,9 @@ class SoundManager {
       // BGM
       this.players.bgm = createAudioPlayer(require('../../assets/sounds/bgm.wav'));
       this.players.bgm.loop = true;
-      this.players.bgm.play();
+      if (this.bgmEnabled) {
+        this.players.bgm.play();
+      }
 
       this.appStateSubscription = AppState.addEventListener('change', (nextAppState) => {
         if (nextAppState === 'active') {
@@ -47,7 +50,6 @@ class SoundManager {
       });
 
       this.isInitialized = true;
-      this.bgmEnabled = true;
       console.log('expo-audio sounds initialized successfully');
     } catch (error) {
       console.error('Failed to initialize sounds', error);

@@ -90,14 +90,13 @@ export default function StretchingScreen({ navigation }) {
   useEffect(() => {
     const sub = AppState.addEventListener('change', (nextState) => {
       if (nextState === 'active' && isTimerActive && !isPaused && endTimeRef.current) {
-        const remaining = Math.ceil((endTimeRef.current - Date.now()) / 1000);
+        const remaining = Math.round((endTimeRef.current - Date.now()) / 1000);
         if (remaining <= 0) {
-          // Timer expired while in background — trigger alarm
+          // Timer expired while in background — trigger alarm via state
           if (timerRef.current) clearInterval(timerRef.current);
           setTimeRemaining(0);
-          setIsRinging(true);
-          SoundManager.playTimerCompleteLoop();
-          Vibration.vibrate([0, 150, 200, 150, 200, 150], true);
+          setIsRinging(true); // alarm effect below will handle sound + vibration
+          endTimeRef.current = null;
         } else {
           setTimeRemaining(remaining);
         }
@@ -105,6 +104,15 @@ export default function StretchingScreen({ navigation }) {
     });
     return () => sub.remove();
   }, [isTimerActive, isPaused]);
+
+  // Play alarm when isRinging becomes true — kept separate so the interval
+  // cleanup race can never prevent the sound from firing.
+  useEffect(() => {
+    if (isRinging) {
+      SoundManager.playTimerCompleteLoop();
+      Vibration.vibrate([0, 150, 200, 150, 200, 150], true);
+    }
+  }, [isRinging]);
 
   // Timer logic — uses wall-clock endTimeRef for accuracy
   useEffect(() => {
@@ -114,14 +122,13 @@ export default function StretchingScreen({ navigation }) {
         endTimeRef.current = Date.now() + timeRemaining * 1000;
       }
       timerRef.current = setInterval(() => {
-        const remaining = Math.ceil((endTimeRef.current - Date.now()) / 1000);
+        const remaining = Math.round((endTimeRef.current - Date.now()) / 1000);
         if (remaining <= 0) {
           clearInterval(timerRef.current);
+          endTimeRef.current = null;
+          // Set state — the isRinging effect handles sound & vibration
           setTimeRemaining(0);
           setIsRinging(true);
-          SoundManager.playTimerCompleteLoop();
-          Vibration.vibrate([0, 150, 200, 150, 200, 150], true);
-          endTimeRef.current = null;
           return;
         }
         setTimeRemaining(remaining);
@@ -146,7 +153,6 @@ export default function StretchingScreen({ navigation }) {
     if (isSingleModeRef.current) {
       setIsTimerActive(false);
       setIsComplete(true);
-      SoundManager.playTimerComplete();
       Vibration.vibrate([0, 200, 100, 200, 100, 400]);
       return;
     }
@@ -179,7 +185,6 @@ export default function StretchingScreen({ navigation }) {
       // All done!
       setIsTimerActive(false);
       setIsComplete(true);
-      SoundManager.playTimerComplete();
       Vibration.vibrate([0, 200, 100, 200, 100, 400]);
       return;
     }
@@ -301,6 +306,7 @@ export default function StretchingScreen({ navigation }) {
         setCurrentSide(null);
       }
       setTimeRemaining(nextStretch.duration);
+      endTimeRef.current = null;
       return;
     }
 
@@ -308,6 +314,7 @@ export default function StretchingScreen({ navigation }) {
     if (currentStretch.sides && currentSide === 'left') {
       setCurrentSide('right');
       setTimeRemaining(currentStretch.duration);
+      endTimeRef.current = null;
       return;
     }
 
@@ -323,6 +330,7 @@ export default function StretchingScreen({ navigation }) {
     setIsResting(true);
     setCurrentSide(null);
     setTimeRemaining(REST_BETWEEN_STRETCHES);
+    endTimeRef.current = null;
   };
 
   const stopSession = () => {
