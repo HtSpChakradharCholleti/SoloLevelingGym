@@ -10,6 +10,10 @@ import ExerciseItem from '../components/ExerciseItem';
 import XPToast from '../components/XPToast';
 
 export default function WorkoutScreen({ navigation }) {
+  // Opt out of React Compiler — beta hoists activeWorkout.exercises past the
+  // null guard below, crashing on initial render when no workout is active.
+  'use no memo';
+
   const { activeWorkout, completeExerciseSet, finishWorkout, cancelWorkout } = usePlayer();
   useKeepAwake(); // Prevent screen from sleeping during workout
   const [elapsed, setElapsed] = useState(0);
