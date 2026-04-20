@@ -4,13 +4,16 @@ import { Platform } from 'react-native';
 // Only set the handler when needed or inside an init function to avoid top-level triggers
 export const initNotifications = () => {
   Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowAlert: false,
-      shouldShowBanner: false,
-      shouldShowList: false,
-      shouldPlaySound: false,
-      shouldSetBadge: false,
-    }),
+    // Allow test notifications through in foreground; suppress all others.
+    handleNotification: async (notification) => {
+      const isTest = notification?.request?.content?.data?.isTest === true;
+      return {
+        shouldShowBanner: isTest,
+        shouldShowList: isTest,
+        shouldPlaySound: isTest,
+        shouldSetBadge: false,
+      };
+    },
   });
 };
 
@@ -153,6 +156,7 @@ class NotificationManager {
         title: "System Online 🚀",
         body: "Local notifications are now active. Ready for combat!",
         sound: Platform.OS === 'ios' ? 'notif.wav' : 'notif',
+        data: { isTest: true }, // bypasses foreground suppression
         android: {
           channelId: 'system_alerts',
         },
