@@ -17,7 +17,10 @@ import { COLORS } from './src/theme';
 import SoundManager from './src/utils/SoundManager';
 import NotificationManager, { initNotifications } from './src/utils/NotificationManager';
 import { HotUpdater } from '@hot-updater/react-native';
-import { OTA_URL, CHANNEL } from '@env';
+
+const OTA_URL = process.env.EXPO_PUBLIC_OTA_URL;
+const S3_BUCKET = process.env.EXPO_PUBLIC_S3_BUCKET;
+const CHANNEL = process.env.EXPO_PUBLIC_CHANNEL;
 import { getVersion } from 'react-native-device-info';
 import { abortSignalManager } from './src/utils/AbortController';
 
@@ -105,7 +108,8 @@ const styles = StyleSheet.create({
 
 const appVersion = getVersion();
 const channel = CHANNEL.toLowerCase();
-const isMisconfigured = !channel || !appVersion || !OTA_URL;
+const bucket = S3_BUCKET.toLowerCase();
+const isMisconfigured = !channel || !appVersion || !OTA_URL || !bucket;
 if (isMisconfigured) {
   console.warn(
     '[HotUpdaterJs] Missing configuration for OTA updates. Falling back to normal app load.',
@@ -130,13 +134,16 @@ export default isMisconfigured
             'OTA_CHECK',
           );
           const otaRoot = OTA_URL.replace(/\/$/, '');
-          const baseUrl = `${otaRoot}/${Platform.OS}/${channel}/${appVersion}`;
+          const baseUrl = `${otaRoot}/${bucket}/${Platform.OS}/${channel}/${appVersion}/update.json`;
           const timeout = setTimeout(() => {
             abortSignalManager.abort('OTA_CHECK');
           }, 3 * 1000);
 
+          console.log('[HotUpdaterJs] currentBundleId:', params.bundleId, 'minBundleId:', params.minBundleId);
+          console.log('[HotUpdaterJs] baseUrl', baseUrl);
+
           try {
-            const res = await fetch(`${baseUrl}/update.json?t=${Date.now()}`, {
+            const res = await fetch(baseUrl, {
               method: 'GET',
               headers: {
                 'Content-Type': 'application/json',
@@ -144,7 +151,10 @@ export default isMisconfigured
               signal: otaAbortSignal,
             });
 
-            if (!res.ok) return null;
+            if (!res.ok) {
+              console.error('[HotUpdater] Failed to fetch update.json:', res.status);
+              return null
+            };
 
             const data = await res.json();
             console.error('[HotUpdater] policy data', data);

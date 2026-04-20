@@ -1261,6 +1261,16 @@
     typescript "6.0.2"
     unconfig "7.5.0"
 
+"@hot-updater/cli-tools@0.30.1":
+  version "0.30.1"
+  resolved "https://registry.yarnpkg.com/@hot-updater/cli-tools/-/cli-tools-0.30.1.tgz#da526dac3c96907ca1bce436a5cef4506d1b83d8"
+  integrity sha512-Arej44qNxEDWSCAN9GOpvALab68qRmtnwuzi8UGWgRW6mQY5vJJjKz5OGpa0NLO0KpEE7X4tFWZXkjuShAFd7Q==
+  dependencies:
+    "@hot-updater/plugin-core" "0.30.1"
+    oxc-transform "0.121.0"
+    typescript "6.0.2"
+    unconfig "7.5.0"
+
 "@hot-updater/console@0.29.6":
   version "0.29.6"
   resolved "https://registry.yarnpkg.com/@hot-updater/console/-/console-0.29.6.tgz#d95555ec3e8866f785a7c1a07113b349106ba0ae"
@@ -1270,6 +1280,11 @@
   version "0.29.6"
   resolved "https://registry.yarnpkg.com/@hot-updater/core/-/core-0.29.6.tgz#01c591b76e3273b0807939ef73a68dd7257b9661"
   integrity sha512-41Xkyle82nEfHfU6bcWcMfs6x4dB278r22iDo2hKyaefsfE+c04JcgPuTGzSGSbct/C9GFTdiyMyP/T/eJL3gg==
+
+"@hot-updater/core@0.30.1":
+  version "0.30.1"
+  resolved "https://registry.yarnpkg.com/@hot-updater/core/-/core-0.30.1.tgz#e72a06c39d03bceee38702b5128d4e6d52d84ae2"
+  integrity sha512-Mxqk7+GvXXFqykoFD9Ik38qdwY30dYQ8HiM/H4xvPJ88kdTajANni6u3PA0I+dbXc/eeK81XVVuVLEhXkzgX5A==
 
 "@hot-updater/expo@0.29.6":
   version "0.29.6"
@@ -1290,6 +1305,13 @@
   dependencies:
     "@hot-updater/core" "0.29.6"
 
+"@hot-updater/js@0.30.1":
+  version "0.30.1"
+  resolved "https://registry.yarnpkg.com/@hot-updater/js/-/js-0.30.1.tgz#b8e0737a68977369cc411dd69bdf0e95fa16686a"
+  integrity sha512-sYZAAKhcQaC8aYretPhUZmjl0Zk4qc/3OjKc5anGaJfXCjyP62gyDP2hR5wiAkBPYZNldQjFczG+9gaST2dv7A==
+  dependencies:
+    "@hot-updater/core" "0.30.1"
+
 "@hot-updater/plugin-core@0.29.6":
   version "0.29.6"
   resolved "https://registry.yarnpkg.com/@hot-updater/plugin-core/-/plugin-core-0.29.6.tgz#288958511c3419a0818b5a4a5ac5b139a4439311"
@@ -1301,15 +1323,26 @@
     mime "^4.0.4"
     semver "^7.7.2"
 
-"@hot-updater/react-native@0.29.6":
-  version "0.29.6"
-  resolved "https://registry.yarnpkg.com/@hot-updater/react-native/-/react-native-0.29.6.tgz#684e58532db88dff287189158280aacab7a34414"
-  integrity sha512-kN6Z2J7wG5v3Vw44v8mkiBEjsTBFG5fx2E/uD9ewhF47c3wzpHij9TU/dkUcCOVnEH7LgkiRVKyKaczarX/jsg==
+"@hot-updater/plugin-core@0.30.1":
+  version "0.30.1"
+  resolved "https://registry.yarnpkg.com/@hot-updater/plugin-core/-/plugin-core-0.30.1.tgz#811ec7370a31690e0c150a2ba491afb778c75f79"
+  integrity sha512-S+wuYXIypJLpG30KVLV1BnQtikaY0AbCmunXOVrMJ9Rcj9vG8mO4dNUrIh1iqq7p/YKLGi5r/csZviG3HLrGPw==
   dependencies:
-    "@hot-updater/cli-tools" "0.29.6"
-    "@hot-updater/core" "0.29.6"
-    "@hot-updater/js" "0.29.6"
-    "@hot-updater/plugin-core" "0.29.6"
+    "@hot-updater/core" "0.30.1"
+    "@hot-updater/js" "0.30.1"
+    es-toolkit "^1.32.0"
+    mime "^4.0.4"
+    semver "^7.7.2"
+
+"@hot-updater/react-native@0.30.1":
+  version "0.30.1"
+  resolved "https://registry.yarnpkg.com/@hot-updater/react-native/-/react-native-0.30.1.tgz#b6760f6c5cc8c6a6c092c8d8efa24286766fe6bd"
+  integrity sha512-zQN/mhBauoPBUh05R0SxCs9sWtRvJKxR4C7EeIer7s12hMWu1hoLybp8lVsHvXcRu/UO3kOxQt9kxF0mQlz5RQ==
+  dependencies:
+    "@hot-updater/cli-tools" "0.30.1"
+    "@hot-updater/core" "0.30.1"
+    "@hot-updater/js" "0.30.1"
+    "@hot-updater/plugin-core" "0.30.1"
     use-sync-external-store "1.5.0"
 
 "@hot-updater/server@0.29.6":
@@ -2624,16 +2657,6 @@ dnssd-advertise@^1.1.4:
   version "1.1.4"
   resolved "https://registry.yarnpkg.com/dnssd-advertise/-/dnssd-advertise-1.1.4.tgz#0744865a4fa2569a44dcb9aff267022aaf2803b2"
   integrity sha512-AmGyK9WpNf06WeP5TjHZq/wNzP76OuEeaiTlKr9E/EEelYLczywUKoqRz+DPRq/ErssjT4lU+/W7wzJW+7K/ZA==
-
-dotenv@^16.4.5:
-  version "16.6.1"
-  resolved "https://registry.yarnpkg.com/dotenv/-/dotenv-16.6.1.tgz#773f0e69527a8315c7285d5ee73c4459d20a8020"
-  integrity sha512-uBq4egWHTcTt33a72vpSG0z3HnPuIl6NqYcTrKEg2azoEyl2hpW0zqlxysq2pK9HlDIHyHyakeYaYnSAwd8bow==
-
-dotenv@^17.4.1:
-  version "17.4.1"
-  resolved "https://registry.yarnpkg.com/dotenv/-/dotenv-17.4.1.tgz#d8e2179fe287365ef3aecb9459668454168eda88"
-  integrity sha512-k8DaKGP6r1G30Lx8V4+pCsLzKr8vLmV2paqEj1Y55GdAgJuIqpRp5FfajGF8KtwMxCz9qJc6wUIJnm053d/WCw==
 
 dunder-proto@^1.0.1:
   version "1.0.1"
@@ -4449,13 +4472,6 @@ react-native-device-info@^15.0.2:
   version "15.0.2"
   resolved "https://registry.yarnpkg.com/react-native-device-info/-/react-native-device-info-15.0.2.tgz#c7de1bb6baeb07e1bab70159ad540c5705cb8dc0"
   integrity sha512-dd71eXG2l3Cwp66IvKNadMTB8fhU3PEjyVddI97sYan+D4bgIAUmgGDhbSOFvHcGavksb2U17kiQYaDiK2WK2g==
-
-react-native-dotenv@^3.4.11:
-  version "3.4.11"
-  resolved "https://registry.yarnpkg.com/react-native-dotenv/-/react-native-dotenv-3.4.11.tgz#2e6c4eabd55d5f1bf109b3dd9141dadf9c55cdd4"
-  integrity sha512-6vnIE+WHABSeHCaYP6l3O1BOEhWxKH6nHAdV7n/wKn/sciZ64zPPp2NUdEUf1m7g4uuzlLbjgr+6uDt89q2DOg==
-  dependencies:
-    dotenv "^16.4.5"
 
 react-native-gesture-handler@~2.30.0:
   version "2.30.1"

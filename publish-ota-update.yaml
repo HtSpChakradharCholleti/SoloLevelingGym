@@ -1,4 +1,4 @@
-name: Deploy OTA Update
+name: Deploy OTA Update (For local testing only)
 
 on:
   workflow_dispatch:
@@ -11,9 +11,9 @@ jobs:
       AWS_ACCESS_KEY_ID: test
       AWS_SECRET_ACCESS_KEY: test
       AWS_DEFAULT_REGION: us-east-1
-      S3_URL: http://localhost:4566
+      S3_URL: https://chocha.duckdns.org:8443
       BUCKET_NAME: solo-leveling-ota-updates
-      PARALLEL_JOBS: 4
+      PARALLEL_JOBS: 1
 
     steps:
       - uses: actions/checkout@v4
@@ -96,24 +96,33 @@ jobs:
           key: ${{ steps.deps-cache.outputs.cache-primary-key }}
 
       # -------------------------
-      # Package bundles
+      # Build OTA bundles + install AWS CLI in parallel
       # -------------------------
-      - name: Build OTA bundles
-        if: env.ROLLBACK != 'true'
+      - name: Build OTA bundles & install AWS CLI
         run: |
-          for PLATFORM in $PLATFORMS; do
-            echo "🚀 Building bundle for $PLATFORM"
-            npx hot-updater deploy -p $PLATFORM -f -m "$MESSAGE" -t 1.*.*
-          done
+          # Start AWS CLI install in background
+          (curl -sL "https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip" -o "/tmp/awscliv2.zip" \
+            && cd /tmp && unzip -q awscliv2.zip \
+            && sudo ./aws/install > /dev/null 2>&1) &
+          AWS_PID=$!
 
-      # -------------------------
-      # Install AWS CLI
-      # -------------------------
-      - name: Install AWS CLI
-        run: |
-          curl "https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip" -o "awscliv2.zip"
-          unzip awscliv2.zip > /dev/null
-          sudo ./aws/install
+          # Build bundles in foreground (skip if rollback)
+          if [ "$ROLLBACK" != "true" ]; then
+            # echo "🚀 Exporting public key into native configuration files for OTA bundle signing"
+            # npx hot-updater keys export-public -y
+            # Manually load .env.production since hot-updater CLI bypasses Expo CLI's auto-loader
+            set -a
+            source .env.production
+            set +a
+            for PLATFORM in $PLATFORMS; do
+              echo "🚀 Building bundle for $PLATFORM with EXPO_PUBLIC_CHANNEL=$EXPO_PUBLIC_CHANNEL"
+              NODE_ENV=$PLATFORM npx hot-updater deploy -p $PLATFORM -f -m "$MESSAGE" -t 1.1.1 >> /dev/null
+            done
+          fi
+
+          # Wait for AWS CLI install to complete
+          wait $AWS_PID
+          aws --version
 
       # -------------------------
       # Extract bundle hash and add fileUrl to metadata
@@ -153,7 +162,7 @@ jobs:
             aws s3 cp \
               ".hot-updater/output/bundle/$PLATFORM.zip" \
               "s3://$BUCKET_NAME/$PLATFORM/$CHANNEL/$VERSION/bundles/${HASH}.zip" \
-              --endpoint-url "$S3_URL"
+              --endpoint-url "$S3_URL" --no-verify-ssl
           ' _ {}
 
       # -------------------------
@@ -171,12 +180,12 @@ jobs:
             IFS="|" read -r PLATFORM CHANNEL VERSION <<< "$1"
             UPDATE_FILE="s3://$BUCKET_NAME/$PLATFORM/$CHANNEL/$VERSION/update.json"
 
-            if aws s3 ls "$UPDATE_FILE" --endpoint-url "$S3_URL" > /dev/null 2>&1; then
+            if aws s3 ls "$UPDATE_FILE" --endpoint-url "$S3_URL" --no-verify-ssl > /dev/null 2>&1; then
               TS=$(date +"%Y%m%d%H%M%S")
               aws s3 mv \
                 "$UPDATE_FILE" \
                 "s3://$BUCKET_NAME/$PLATFORM/$CHANNEL/$VERSION/history/update_$TS.json" \
-                --endpoint-url "$S3_URL"
+                --endpoint-url "$S3_URL" --no-verify-ssl
             fi
           ' _ {}
 
@@ -212,7 +221,7 @@ jobs:
             aws s3 cp \
               "$TMP_METADATA" \
               "s3://$BUCKET_NAME/$PLATFORM/$CHANNEL/$VERSION/update.json" \
-              --endpoint-url "$S3_URL"
+              --endpoint-url "$S3_URL" --no-verify-ssl
 
             rm -f "$TMP_METADATA"
           ' _ {}
@@ -241,7 +250,7 @@ jobs:
             aws s3 cp \
               "$TMP_METADATA" \
               "s3://$BUCKET_NAME/$PLATFORM/$CHANNEL/$VERSION/update.json" \
-              --endpoint-url "$S3_URL"
+              --endpoint-url "$S3_URL" --no-verify-ssl
 
             rm -f "$TMP_METADATA"
           ' _ {}
