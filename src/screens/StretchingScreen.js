@@ -41,6 +41,7 @@ export default function StretchingScreen({ navigation }) {
   useKeepAwake(); // Prevent screen from sleeping during stretching
   const { settings } = usePlayer();
   const animationsEnabled = settings?.animationsEnabled ?? true;
+  const hapticsEnabled = settings?.hapticsEnabled ?? true;
   const [selectedDay, setSelectedDay] = useState('push');
   const [selectedStretchIds, setSelectedStretchIds] = useState(new Set());
   const [isTimerActive, setIsTimerActive] = useState(false);
@@ -110,7 +111,7 @@ export default function StretchingScreen({ navigation }) {
   useEffect(() => {
     if (isRinging) {
       SoundManager.playTimerCompleteLoop();
-      Vibration.vibrate([0, 150, 200, 150, 200, 150], true);
+      if (hapticsEnabled) Vibration.vibrate([0, 150, 200, 150, 200, 150], true);
     }
   }, [isRinging]);
 
@@ -135,7 +136,7 @@ export default function StretchingScreen({ navigation }) {
         // Tick sound at 3, 2, 1
         if (remaining <= 3 && remaining > 0) {
           SoundManager.playTimerTick();
-          Vibration.vibrate(100);
+          if (hapticsEnabled) Vibration.vibrate(100);
         }
         setTotalTimeElapsed((prev) => prev + 1);
       }, 1000);
@@ -146,14 +147,14 @@ export default function StretchingScreen({ navigation }) {
   }, [isTimerActive, isPaused, timeRemaining, currentStretchIndex, currentSide, isResting]);
 
   const handleTimerComplete = useCallback(() => {
-    Vibration.vibrate(300);
+    if (hapticsEnabled) Vibration.vibrate(300);
     const currentStretch = sessionStretches[currentStretchIndex];
 
     // If user manually played a single stretch, stop here — don't continue the sequence
     if (isSingleModeRef.current) {
       setIsTimerActive(false);
       setIsComplete(true);
-      Vibration.vibrate([0, 200, 100, 200, 100, 400]);
+      if (hapticsEnabled) Vibration.vibrate([0, 200, 100, 200, 100, 400]);
       return;
     }
 
@@ -185,7 +186,7 @@ export default function StretchingScreen({ navigation }) {
       // All done!
       setIsTimerActive(false);
       setIsComplete(true);
-      Vibration.vibrate([0, 200, 100, 200, 100, 400]);
+      if (hapticsEnabled) Vibration.vibrate([0, 200, 100, 200, 100, 400]);
       return;
     }
 
@@ -194,12 +195,12 @@ export default function StretchingScreen({ navigation }) {
     setIsResting(true);
     setCurrentSide(null);
     setTimeRemaining(REST_BETWEEN_STRETCHES);
-  }, [currentStretchIndex, currentSide, isResting, sessionStretches]);
+  }, [currentStretchIndex, currentSide, hapticsEnabled, isResting, sessionStretches]);
 
   const dismissAlarm = () => {
     setIsRinging(false);
     SoundManager.stopTimerComplete();
-    Vibration.cancel(); // Stop repeating vibration
+    if (hapticsEnabled) Vibration.cancel(); // Stop repeating vibration
     NotificationManager.cancelTimerNotification(); // Cancel the push notification
     handleTimerComplete();
   };
@@ -338,7 +339,7 @@ export default function StretchingScreen({ navigation }) {
     setIsRinging(false);
     SoundManager.stopTimerComplete();
     NotificationManager.cancelTimerNotification(); // Cancel pending notification
-    Vibration.cancel();
+    if (hapticsEnabled) Vibration.cancel();
     setIsTimerActive(false);
     setIsPaused(false);
     setCurrentStretchIndex(0);

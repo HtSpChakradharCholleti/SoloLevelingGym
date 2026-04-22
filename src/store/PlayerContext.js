@@ -50,6 +50,7 @@ const initialState = {
   settings: {
     animationsEnabled: true,
     bgmEnabled: true,
+    hapticsEnabled: true,
   },
 
   // Loaded

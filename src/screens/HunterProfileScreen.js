@@ -299,6 +299,25 @@ export default function HunterProfileScreen({ navigation }) {
               ios_backgroundColor={COLORS.surfaceBorder}
             />
           </View>
+
+          <View style={styles.settingDivider} />
+
+          <View style={styles.settingRow}>
+            <View style={styles.settingInfo}>
+              <MaterialCommunityIcons name="vibrate" size={20} color={COLORS.accent} />
+              <View style={styles.settingTextWrap}>
+                <Text style={styles.settingLabel}>Haptic Feedback</Text>
+                <Text style={styles.settingDesc}>Vibration during timers & alerts</Text>
+              </View>
+            </View>
+            <Switch
+              value={settings?.hapticsEnabled ?? true}
+              onValueChange={(val) => updateSetting('hapticsEnabled', val)}
+              trackColor={{ false: COLORS.surfaceBorder, true: COLORS.accent + '80' }}
+              thumbColor={settings?.hapticsEnabled ? COLORS.accent : COLORS.textMuted}
+              ios_backgroundColor={COLORS.surfaceBorder}
+            />
+          </View>
         </View>
       </SystemPanel>
 
