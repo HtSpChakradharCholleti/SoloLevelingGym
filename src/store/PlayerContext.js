@@ -38,7 +38,8 @@ const initialState = {
 
   // History
   workoutHistory: [],
-  weightHistory: [], // [{ date: 'YYYY-MM-DD', weight: number, unit: 'kg' }]
+  weightHistory: [],    // [{ date: 'YYYY-MM-DD', weight: number, unit: 'kg' }]
+  measurementsHistory: [], // [{ date: 'YYYY-MM-DD', bicep?: number, chest?: number, belly?: number, unit: 'cm' }]
 
   // UI State
   showLevelUp: false,
@@ -63,6 +64,8 @@ const ActionTypes = {
   SET_QUESTS: 'SET_QUESTS',
   COMPLETE_QUEST: 'COMPLETE_QUEST',
   START_WORKOUT: 'START_WORKOUT',
+  ADD_EXERCISE_TO_WORKOUT: 'ADD_EXERCISE_TO_WORKOUT',
+  REMOVE_EXERCISE_FROM_WORKOUT: 'REMOVE_EXERCISE_FROM_WORKOUT',
   COMPLETE_EXERCISE_SET: 'COMPLETE_EXERCISE_SET',
   FINISH_WORKOUT: 'FINISH_WORKOUT',
   CANCEL_WORKOUT: 'CANCEL_WORKOUT',
@@ -70,6 +73,7 @@ const ActionTypes = {
   ADD_XP_TOAST: 'ADD_XP_TOAST',
   REMOVE_XP_TOAST: 'REMOVE_XP_TOAST',
   LOG_WEIGHT: 'LOG_WEIGHT',
+  LOG_MEASUREMENT: 'LOG_MEASUREMENT',
   RESET_ALL: 'RESET_ALL',
   SET_SETTING: 'SET_SETTING',
 };
@@ -150,6 +154,32 @@ function playerReducer(state, action) {
           statXPEarned: {},
         },
       };
+
+    case ActionTypes.ADD_EXERCISE_TO_WORKOUT: {
+      const workout = state.activeWorkout;
+      if (!workout) return state;
+      // Prevent duplicates
+      if (workout.exercises.some(e => e.id === action.payload.id)) return state;
+      return {
+        ...state,
+        activeWorkout: {
+          ...workout,
+          exercises: [...workout.exercises, action.payload],
+        },
+      };
+    }
+
+    case ActionTypes.REMOVE_EXERCISE_FROM_WORKOUT: {
+      const workout = state.activeWorkout;
+      if (!workout) return state;
+      return {
+        ...state,
+        activeWorkout: {
+          ...workout,
+          exercises: workout.exercises.filter(e => e.id !== action.payload),
+        },
+      };
+    }
 
     case ActionTypes.COMPLETE_EXERCISE_SET: {
       const { exerciseId, setIndex, xp, stat } = action.payload;
@@ -250,6 +280,25 @@ function playerReducer(state, action) {
         ...state,
         weightHistory: newHistory,
       };
+    }
+
+    case ActionTypes.LOG_MEASUREMENT: {
+      const { date, bicep, chest, belly, unit } = action.payload;
+      const newEntry = { date, unit };
+      if (bicep  !== undefined) newEntry.bicep  = bicep;
+      if (chest  !== undefined) newEntry.chest  = chest;
+      if (belly  !== undefined) newEntry.belly  = belly;
+
+      const newHistory = [...(state.measurementsHistory || [])];
+      const idx = newHistory.findIndex(e => e.date === date);
+      if (idx >= 0) {
+        // Merge into existing entry for the same date
+        newHistory[idx] = { ...newHistory[idx], ...newEntry };
+      } else {
+        newHistory.push(newEntry);
+        newHistory.sort((a, b) => new Date(b.date) - new Date(a.date));
+      }
+      return { ...state, measurementsHistory: newHistory };
     }
 
     case ActionTypes.RESET_ALL:
@@ -379,6 +428,28 @@ export function PlayerProvider({ children }) {
     dispatch({ type: ActionTypes.START_WORKOUT, payload: { exercises: formattedExercises } });
   }, []);
 
+  const addExerciseToWorkout = useCallback((exercise) => {
+    // exercise should already be in the workout-ready format (id, name, stat, baseXP, sets, reps, repRange, muscle, icon)
+    const formatted = {
+      id: exercise.id,
+      name: exercise.name,
+      stat: exercise.stat,
+      baseXP: exercise.baseXP,
+      sets: exercise.defaultSets ?? exercise.sets,
+      reps: exercise.defaultReps ?? exercise.reps,
+      repRange: exercise.repRange,
+      muscle: exercise.muscle,
+      icon: exercise.icon,
+    };
+    SoundManager.playTap();
+    dispatch({ type: ActionTypes.ADD_EXERCISE_TO_WORKOUT, payload: formatted });
+  }, []);
+
+  const removeExerciseFromWorkout = useCallback((exerciseId) => {
+    SoundManager.playTap();
+    dispatch({ type: ActionTypes.REMOVE_EXERCISE_FROM_WORKOUT, payload: exerciseId });
+  }, []);
+
   const completeExerciseSet = useCallback((exerciseId, setIndex, xp, stat) => {
     SoundManager.playTap();
     dispatch({
@@ -414,12 +485,21 @@ export function PlayerProvider({ children }) {
     dispatch({ type: ActionTypes.SET_PLAYER_NAME, payload: name });
   }, []);
 
-  const logWeight = useCallback((weight, unit = 'kg') => {
-    const today = getTodayString();
-    SoundManager.playLevelUp(); // Play level up sound as reward for logging
+  const logWeight = useCallback((weight, unit = 'kg', date) => {
+    const today = date || getTodayString();
+    SoundManager.playLevelUp();
     dispatch({
       type: ActionTypes.LOG_WEIGHT,
       payload: { weight, unit, date: today }
+    });
+  }, []);
+
+  const logMeasurement = useCallback((measurements, unit = 'cm', date) => {
+    const today = date || getTodayString();
+    SoundManager.playTap();
+    dispatch({
+      type: ActionTypes.LOG_MEASUREMENT,
+      payload: { ...measurements, unit, date: today },
     });
   }, []);
 
@@ -447,16 +527,20 @@ export function PlayerProvider({ children }) {
   const value = {
     ...state,
     weightHistory: state.weightHistory || [],
+    measurementsHistory: state.measurementsHistory || [],
     gainXP,
     gainStatXP,
     completeQuest,
     startWorkout,
+    addExerciseToWorkout,
+    removeExerciseFromWorkout,
     completeExerciseSet,
     finishWorkout,
     cancelWorkout,
     dismissLevelUp,
     setPlayerName,
     logWeight,
+    logMeasurement,
     updateSetting,
     resetAll,
   };

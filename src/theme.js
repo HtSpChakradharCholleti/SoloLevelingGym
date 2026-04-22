@@ -75,12 +75,12 @@ export const STAT_LABELS = {
 };
 
 export const STAT_DESCRIPTIONS = {
-  STR: 'Chest & Arms',
-  VIT: 'Core & Abs',
-  AGI: 'Cardio',
-  END: 'Legs',
-  INT: 'Flexibility',
-  PER: 'Back & Shoulders',
+  STR: 'Push Day — Chest, Shoulders & Triceps',
+  PER: 'Pull Day — Back & Biceps',
+  END: 'Leg Day — Quads, Hamstrings & Calves',
+  VIT: 'Active Recovery — Core & Abs',
+  AGI: 'Cardio — Speed & Conditioning',
+  INT: 'Flexibility — Warmup & Stretching',
 };
 
 export const FONTS = {

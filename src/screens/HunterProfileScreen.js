@@ -16,7 +16,7 @@ const { width } = Dimensions.get('window');
 export default function HunterProfileScreen({ navigation }) {
   const {
     playerName, level, xp, rank, stats,
-    totalWorkouts, currentStreak, bestStreak, weightHistory,
+    totalWorkouts, currentStreak, bestStreak, weightHistory, measurementsHistory,
     settings, updateSetting,
   } = usePlayer();
 
@@ -159,6 +159,45 @@ export default function HunterProfileScreen({ navigation }) {
               </View>
             ))}
           </View>
+        )}
+      </SystemPanel>
+
+      {/* Body Measurements Panel */}
+      <SystemPanel glowColor={COLORS.primary} style={{ marginBottom: SPACING.base }}>
+        <View style={styles.statsPanelHeader}>
+          <MaterialCommunityIcons name="tape-measure" size={18} color={COLORS.primary} />
+          <Text style={styles.statsPanelTitle}>BODY MEASUREMENTS</Text>
+        </View>
+
+        {(() => {
+          const METRICS = [
+            { key: 'bicep', label: 'Bicep', icon: 'arm-flex', color: '#7c91ff' },
+            { key: 'chest', label: 'Chest', icon: 'human-handsup', color: '#ff7c7c' },
+            { key: 'belly', label: 'Belly', icon: 'human', color: '#7cffb8' },
+          ];
+          const latest = (measurementsHistory || [])[0];
+          return (
+            <View style={styles.measurementsRow}>
+              {METRICS.map(({ key, label, icon, color }) => {
+                const val = latest?.[key];
+                return (
+                  <View key={key} style={[styles.measurementChip, { borderColor: color + '40' }]}>
+                    <MaterialCommunityIcons name={icon} size={16} color={color} />
+                    <Text style={[styles.measurementChipLabel, { color }]}>{label}</Text>
+                    <Text style={styles.measurementChipValue}>
+                      {val !== undefined ? `${val} cm` : '–'}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
+          );
+        })()}
+
+        {(measurementsHistory || []).length > 0 && (
+          <Text style={styles.measurementDate}>
+            Last logged: {measurementsHistory[0].date}
+          </Text>
         )}
       </SystemPanel>
 
@@ -593,5 +632,39 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.bodyMedium,
     fontSize: FONT_SIZES.sm,
     color: COLORS.textPrimary,
+  },
+
+  // Body Measurements Panel
+  measurementsRow: {
+    flexDirection: 'row',
+    gap: SPACING.sm,
+    marginBottom: SPACING.sm,
+  },
+  measurementChip: {
+    flex: 1,
+    backgroundColor: COLORS.surface,
+    borderRadius: BORDER_RADIUS.md,
+    borderWidth: 1,
+    padding: SPACING.sm,
+    alignItems: 'center',
+    gap: 3,
+  },
+  measurementChipLabel: {
+    fontFamily: FONTS.heading,
+    fontSize: FONT_SIZES.xs,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  measurementChipValue: {
+    fontFamily: FONTS.heading,
+    fontSize: FONT_SIZES.sm,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+  },
+  measurementDate: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textMuted,
+    marginTop: SPACING.xs,
   },
 });
