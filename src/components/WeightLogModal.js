@@ -1,16 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   Modal,
   TouchableOpacity,
-  KeyboardAvoidingView,
   Platform,
   TouchableWithoutFeedback,
   Keyboard,
   TextInput,
-  ScrollView,
+  Animated,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -236,23 +235,64 @@ function MeasurementsTab({ date, onClose }) {
 export default function WeightLogModal({ visible, onClose }) {
   const [activeTab, setActiveTab] = useState(TAB_WEIGHT);
   const [date, setDate] = useState(getTodayString());
+  const slideAnim = useRef(new Animated.Value(0)).current;
 
   // Reset to today every time the modal opens
   useEffect(() => {
     if (visible) {
       setDate(getTodayString());
       setActiveTab(TAB_WEIGHT);
+      slideAnim.setValue(0);
     }
   }, [visible]);
 
+  // Animate modal up/down with keyboard — no KAV so no double-animation blink
+  useEffect(() => {
+    const duration = Platform.OS === 'ios' ? 250 : 200;
+
+    const onShow = (e) => {
+      const kbHeight = e?.endCoordinates?.height ?? 280;
+      // Shift up by half the keyboard height to keep modal visible and centered
+      Animated.timing(slideAnim, {
+        toValue: -(kbHeight / 2),
+        duration,
+        useNativeDriver: true,
+      }).start();
+    };
+
+    const onHide = () => {
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration,
+        useNativeDriver: true,
+      }).start();
+    };
+
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showSub = Keyboard.addListener(showEvent, onShow);
+    const hideSub = Keyboard.addListener(hideEvent, onHide);
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, [slideAnim]);
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={styles.modalOverlay}>
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={styles.modalContentWrapper}
-          >
+      {/* Full-screen backdrop */}
+      <TouchableWithoutFeedback onPress={() => { Keyboard.dismiss(); onClose(); }}>
+        <View style={styles.backdrop} />
+      </TouchableWithoutFeedback>
+
+      {/* Animated container — translates with keyboard, no layout recalculations */}
+      <Animated.View
+        pointerEvents="box-none"
+        style={[styles.centeredContainer, { transform: [{ translateY: slideAnim }] }]}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.modalContentWrapper}>
             <View style={[styles.modalContent, SHADOWS.dark]}>
               <LinearGradient
                 colors={[COLORS.surface, COLORS.surfaceLight]}
@@ -316,17 +356,22 @@ export default function WeightLogModal({ visible, onClose }) {
                 )}
               </LinearGradient>
             </View>
-          </KeyboardAvoidingView>
-        </View>
-      </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Animated.View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
+  // Absolute backdrop covers the whole screen (dimmed background)
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.78)',
+  },
+  // Centered container: absolute, full-screen, centers content — translateY moves it
+  centeredContainer: {
+    ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
     padding: SPACING.base,
@@ -334,6 +379,7 @@ const styles = StyleSheet.create({
   modalContentWrapper: {
     width: '100%',
     maxWidth: 420,
+    alignSelf: 'center',
   },
   modalContent: {
     borderRadius: BORDER_RADIUS.xl,
