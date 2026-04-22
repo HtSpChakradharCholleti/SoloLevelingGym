@@ -26,9 +26,12 @@ const ExerciseItem = ({ exercise, completedSets = [], totalSets, onCompleteSet, 
               <View style={styles.metaRow}>
                 <View style={[styles.statDot, { backgroundColor: statColor }]} />
                 <Text style={styles.meta}>
-                  {totalSets} sets × {exercise.reps} reps • +{exercise.baseXP} XP
+                  {totalSets} sets × {exercise.repRange || `${exercise.reps} reps`} • +{exercise.baseXP} XP
                 </Text>
               </View>
+              {exercise.muscle && (
+                <Text style={styles.muscleTag}>{exercise.muscle}</Text>
+              )}
             </View>
           </View>
 
@@ -68,6 +71,7 @@ const styles = StyleSheet.create({
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   statDot: { width: 4, height: 4, borderRadius: 2 },
   meta: { fontFamily: FONTS.body, fontSize: FONT_SIZES.xs, color: COLORS.textSecondary },
+  muscleTag: { fontFamily: FONTS.body, fontSize: FONT_SIZES.xs - 1, color: COLORS.textMuted, marginTop: 2, fontStyle: 'italic' },
   setsRow: { flexDirection: 'row', gap: SPACING.xs },
   setButton: { width: 24, height: 24, borderRadius: BORDER_RADIUS.sm, borderWidth: 1.5, borderColor: COLORS.surfaceBorder, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.surfaceLight },
   setNum: { fontFamily: FONTS.body, fontSize: FONT_SIZES.xs, color: COLORS.textSecondary, fontWeight: '600' },

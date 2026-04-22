@@ -57,8 +57,14 @@ const DungeonCard = ({ dungeon, onPress, index = 0 }) => {
               <MaterialCommunityIcons name={dungeon.icon} size={24} color={statColor} />
             </View>
             
+            {dungeon.splitLabel && (
+              <View style={[styles.splitBadge, { backgroundColor: `${statColor}22`, borderColor: `${statColor}50` }]}>
+                <Text style={[styles.splitLabel, { color: statColor }]}>{dungeon.splitLabel}</Text>
+              </View>
+            )}
+
             <Text style={styles.name} numberOfLines={1}>{dungeon.name}</Text>
-            <Text style={styles.subtitle}>{dungeon.subtitle}</Text>
+            <Text style={styles.subtitle} numberOfLines={2}>{dungeon.subtitle}</Text>
             
             <View style={styles.footer}>
               <View style={styles.rankTag}>
@@ -111,7 +117,9 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.sm 
   },
   name: { fontFamily: FONTS.heading, fontSize: FONT_SIZES.base, fontWeight: '700', color: COLORS.textPrimary, textAlign: 'center', marginBottom: 4 },
-  subtitle: { fontFamily: FONTS.body, fontSize: FONT_SIZES.xs, color: COLORS.textMuted, textAlign: 'center', marginBottom: SPACING.md },
+  subtitle: { fontFamily: FONTS.body, fontSize: FONT_SIZES.xs, color: COLORS.textMuted, textAlign: 'center', marginBottom: SPACING.md, lineHeight: 16 },
+  splitBadge: { borderWidth: 1, borderRadius: BORDER_RADIUS.sm, paddingHorizontal: SPACING.sm, paddingVertical: 2, marginBottom: SPACING.xs },
+  splitLabel: { fontFamily: FONTS.heading, fontSize: FONT_SIZES.xs - 1, fontWeight: '700', letterSpacing: 1.5 },
   footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', paddingTop: SPACING.sm, borderTopWidth: 1, borderTopColor: COLORS.surfaceBorder },
   rankTag: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   dot: { width: 6, height: 6, borderRadius: 3 },

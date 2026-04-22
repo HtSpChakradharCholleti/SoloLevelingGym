@@ -59,7 +59,7 @@ export default function DungeonsScreen({ navigation }) {
             <Text style={styles.headerTitle}>DUNGEON SELECT</Text>
           </View>
           <Text style={styles.headerSub}>
-            Choose a dungeon to begin your training. Each dungeon targets different stats.
+            Push · Pull · Legs rotation. Choose your training day and enter the dungeon.
           </Text>
         </SystemPanel>
 
@@ -145,7 +145,7 @@ export default function DungeonsScreen({ navigation }) {
             </View>
             <View style={styles.stretchEntryInfo}>
               <Text style={styles.stretchEntryTitle}>Stretch Timer</Text>
-              <Text style={styles.stretchEntrySub}>Push / Pull / Legs guided stretching</Text>
+              <Text style={styles.stretchEntrySub}>Guided cooldown stretching for shoulders, triceps, forearms &amp; more</Text>
             </View>
             <MaterialCommunityIcons name="chevron-right" size={22} color={COLORS.textMuted} />
           </LinearGradient>
@@ -220,8 +220,11 @@ export default function DungeonsScreen({ navigation }) {
                         <View style={styles.exerciseInfo}>
                           <Text style={styles.exerciseName}>{exercise.name}</Text>
                           <Text style={styles.exerciseMeta}>
-                            {exercise.defaultSets} sets × {exercise.defaultReps} reps • +{exercise.baseXP} XP
+                            {exercise.defaultSets} sets × {exercise.repRange || `${exercise.defaultReps} reps`} • +{exercise.baseXP} XP
                           </Text>
+                          {exercise.muscle && (
+                            <Text style={styles.exerciseMuscle}>{exercise.muscle}</Text>
+                          )}
                         </View>
                       </TouchableOpacity>
                     );
@@ -398,6 +401,13 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body,
     fontSize: FONT_SIZES.xs,
     color: COLORS.textSecondary,
+  },
+  exerciseMuscle: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textMuted,
+    fontStyle: 'italic',
+    marginTop: 1,
   },
   modalFooter: {
     padding: SPACING.xl,
