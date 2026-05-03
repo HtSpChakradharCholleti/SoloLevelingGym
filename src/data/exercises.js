@@ -134,6 +134,18 @@ export const EXERCISES = [
     icon: 'arm-flex',
     muscle: 'Triceps',
   },
+  {
+    id: 'treadmill_push',
+    name: 'Incline Treadmill Walk',
+    dungeonId: 'push',
+    stat: 'STR',
+    baseXP: 20,
+    defaultSets: 1,
+    defaultReps: 12,
+    repRange: '10–15 min',
+    icon: 'walk',
+    muscle: 'Cardiovascular',
+  },
 
   // ──────────────────────────────────────────────
   // PER — Pull Day (Back, Biceps)
@@ -197,6 +209,18 @@ export const EXERCISES = [
     repRange: '10–12',
     icon: 'dumbbell',
     muscle: 'Brachialis',
+  },
+  {
+    id: 'treadmill_pull',
+    name: 'Incline Treadmill Walk',
+    dungeonId: 'pull',
+    stat: 'PER',
+    baseXP: 20,
+    defaultSets: 1,
+    defaultReps: 12,
+    repRange: '10–15 min',
+    icon: 'walk',
+    muscle: 'Cardiovascular',
   },
 
   // ──────────────────────────────────────────────
@@ -273,6 +297,18 @@ export const EXERCISES = [
     repRange: '30–40 sec',
     icon: 'human',
     muscle: 'Core',
+  },
+  {
+    id: 'treadmill_legs',
+    name: 'Incline Treadmill Walk',
+    dungeonId: 'legs',
+    stat: 'END',
+    baseXP: 20,
+    defaultSets: 1,
+    defaultReps: 12,
+    repRange: '10–15 min',
+    icon: 'walk',
+    muscle: 'Cardiovascular',
   },
 
   // ──────────────────────────────────────────────

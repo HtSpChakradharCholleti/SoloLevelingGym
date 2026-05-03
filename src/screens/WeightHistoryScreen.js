@@ -6,6 +6,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { COLORS, FONTS, FONT_SIZES, SPACING, BORDER_RADIUS, SHADOWS } from '../theme';
 import { usePlayer } from '../store/PlayerContext';
 import SystemPanel from '../components/SystemPanel';
+import WeightChart from '../components/WeightChart';
 
 // Colour per measurement metric — must match WeightLogModal
 const METRIC_COLORS = {
@@ -104,6 +105,9 @@ export default function WeightHistoryScreen({ navigation }) {
         {/* ── WEIGHT TAB ────────────────────────────────────────────────────── */}
         {activeTab === TAB_WEIGHT && (
           <>
+            {/* Weight Trend Graph */}
+            <WeightChart data={weightHistory} />
+
             {/* Stats Summary */}
             <View style={styles.statsRow}>
               {[

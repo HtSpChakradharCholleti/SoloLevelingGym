@@ -57,6 +57,8 @@ export default function StretchingScreen({ navigation }) {
   const timerRef = useRef(null);
   const isSingleModeRef = useRef(false); // true when manually playing just one stretch
   const endTimeRef = useRef(null); // wall-clock timestamp when timer should end
+  const isTimerActiveRef = useRef(false); // mirror of isTimerActive for AppState closure
+  const isPausedRef = useRef(false);       // mirror of isPaused for AppState closure
   const allStretches = getStretchesForDay(selectedDay);
 
   // Active session stretches (only selected ones)
@@ -87,10 +89,20 @@ export default function StretchingScreen({ navigation }) {
     }
   }, [isTimerActive, isPaused, animationsEnabled]);
 
+  // Keep refs in sync with state so AppState handler never reads stale closures
+  useEffect(() => { isTimerActiveRef.current = isTimerActive; }, [isTimerActive]);
+  useEffect(() => { isPausedRef.current = isPaused; }, [isPaused]);
+
   // Recalculate timer when app returns from background
+  // Uses refs instead of state to avoid stale closure issues.
   useEffect(() => {
     const sub = AppState.addEventListener('change', (nextState) => {
-      if (nextState === 'active' && isTimerActive && !isPaused && endTimeRef.current) {
+      if (
+        nextState === 'active' &&
+        isTimerActiveRef.current &&
+        !isPausedRef.current &&
+        endTimeRef.current
+      ) {
         const remaining = Math.round((endTimeRef.current - Date.now()) / 1000);
         if (remaining <= 0) {
           // Timer expired while in background — trigger alarm via state
@@ -104,7 +116,7 @@ export default function StretchingScreen({ navigation }) {
       }
     });
     return () => sub.remove();
-  }, [isTimerActive, isPaused]);
+  }, []); // no deps — refs are always current
 
   // Play alarm when isRinging becomes true — kept separate so the interval
   // cleanup race can never prevent the sound from firing.
@@ -122,6 +134,22 @@ export default function StretchingScreen({ navigation }) {
       if (!endTimeRef.current) {
         endTimeRef.current = Date.now() + timeRemaining * 1000;
       }
+
+      // Immediately sync from wall-clock in case we just resumed from background
+      // and the interval was dead. This catches drift even without AppState.
+      const syncedRemaining = Math.round((endTimeRef.current - Date.now()) / 1000);
+      if (syncedRemaining <= 0) {
+        // Timer already expired (e.g. JS was frozen in background)
+        endTimeRef.current = null;
+        setTimeRemaining(0);
+        setIsRinging(true);
+        return; // don't start a new interval
+      }
+      if (syncedRemaining !== timeRemaining) {
+        setTimeRemaining(syncedRemaining);
+        return; // will re-run effect with corrected value
+      }
+
       timerRef.current = setInterval(() => {
         const remaining = Math.round((endTimeRef.current - Date.now()) / 1000);
         if (remaining <= 0) {
