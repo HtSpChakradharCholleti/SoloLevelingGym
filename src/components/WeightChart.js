@@ -1,20 +1,21 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Path, Defs, LinearGradient as SvgGradient, Stop, Circle, Line, Text as SvgText } from 'react-native-svg';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS, FONTS, FONT_SIZES, SPACING, BORDER_RADIUS } from '../theme';
 
-const CHART_HEIGHT = 160;
-const DOT_SIZE = 7;
-const ACTIVE_DOT_SIZE = 9;
-const BAR_WIDTH = 3;
+const CHART_HEIGHT = 170;
+const CHART_PADDING_TOP = 12;
+const CHART_PADDING_BOTTOM = 4;
+const DOT_RADIUS = 3.5;
+const ACTIVE_DOT_RADIUS = 5;
+const Y_AXIS_WIDTH = 38;
 
 /**
- * Pure-RN weight progress chart — vertical bars with dot tips and gradient fill.
- * No SVG / charting library required.
+ * SVG weight-progress line chart with gradient fill.
  *
  * @param {Array<{date: string, weight: number, unit: string}>} data
- *   Weight history entries — newest-first. The component reverses internally.
+ *   Weight history entries — newest-first. Reversed internally.
  * @param {number} [maxPoints=14]
  */
 export default function WeightChart({ data = [], maxPoints = 14 }) {
@@ -31,8 +32,6 @@ export default function WeightChart({ data = [], maxPoints = 14 }) {
   const yMax = rawMax + pad;
   const yRange = yMax - yMin;
 
-  const normalise = (w) => Math.max(0, Math.min(1, (w - yMin) / yRange));
-
   // Change indicator
   const latest = weights[weights.length - 1];
   const previous = weights[weights.length - 2];
@@ -42,12 +41,16 @@ export default function WeightChart({ data = [], maxPoints = 14 }) {
   const isDown = diff < -0.05;
   const unit = chronological[chronological.length - 1]?.unit || 'kg';
 
-  // Y-axis labels (3 values)
-  const yLabels = [rawMin.toFixed(1), ((rawMin + rawMax) / 2).toFixed(1), rawMax.toFixed(1)];
+  // Y-axis labels (4 values)
+  const yLabelCount = 4;
+  const yLabels = [];
+  for (let i = 0; i < yLabelCount; i++) {
+    yLabels.push(yMin + (yRange / (yLabelCount - 1)) * i);
+  }
 
-  // X-axis: show first, last, and ~2 middle labels
+  // X-axis labels (sparse)
   const xLabelSet = new Set([0, chronological.length - 1]);
-  if (chronological.length > 4) {
+  if (chronological.length > 5) {
     const mid = Math.floor(chronological.length / 2);
     xLabelSet.add(mid);
   }
@@ -58,8 +61,64 @@ export default function WeightChart({ data = [], maxPoints = 14 }) {
     return `${d.getDate()} ${months[d.getMonth()]}`;
   };
 
+  // Chart drawable area
+  const usableHeight = CHART_HEIGHT - CHART_PADDING_TOP - CHART_PADDING_BOTTOM;
+
+  // Convert data to SVG coordinates
+  const toX = (i, chartWidth) => {
+    if (chronological.length === 1) return chartWidth / 2;
+    return (i / (chronological.length - 1)) * chartWidth;
+  };
+
+  const toY = (weight) => {
+    const frac = (weight - yMin) / yRange;
+    return CHART_HEIGHT - CHART_PADDING_BOTTOM - frac * usableHeight;
+  };
+
+  // Build SVG path (smooth cubic bezier)
+  const buildLinePath = (chartWidth) => {
+    const points = chronological.map((d, i) => ({
+      x: toX(i, chartWidth),
+      y: toY(d.weight),
+    }));
+
+    if (points.length < 2) return '';
+
+    let path = `M ${points[0].x} ${points[0].y}`;
+
+    for (let i = 0; i < points.length - 1; i++) {
+      const p0 = points[Math.max(i - 1, 0)];
+      const p1 = points[i];
+      const p2 = points[i + 1];
+      const p3 = points[Math.min(i + 2, points.length - 1)];
+
+      // Catmull-Rom to cubic bezier control points
+      const tension = 0.3;
+      const cp1x = p1.x + (p2.x - p0.x) * tension;
+      const cp1y = p1.y + (p2.y - p0.y) * tension;
+      const cp2x = p2.x - (p3.x - p1.x) * tension;
+      const cp2y = p2.y - (p3.y - p1.y) * tension;
+
+      path += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`;
+    }
+
+    return path;
+  };
+
+  // Build area path (line path + close at bottom)
+  const buildAreaPath = (chartWidth) => {
+    const linePath = buildLinePath(chartWidth);
+    if (!linePath) return '';
+    const lastX = toX(chronological.length - 1, chartWidth);
+    const firstX = toX(0, chartWidth);
+    return `${linePath} L ${lastX} ${CHART_HEIGHT} L ${firstX} ${CHART_HEIGHT} Z`;
+  };
+
+  // We render at a fixed assumed width; the View handles layout
+  const SVG_WIDTH = 300; // will stretch via viewBox / preserveAspectRatio
+
   return (
-    <View style={styles.container}>
+    <View style={styles.container} onLayout={() => {}}>
       {/* Header */}
       <View style={styles.headerRow}>
         <View style={styles.headerLeft}>
@@ -82,71 +141,99 @@ export default function WeightChart({ data = [], maxPoints = 14 }) {
 
       {/* Chart body */}
       <View style={styles.chartBody}>
-        {/* Y-axis */}
+        {/* Y-axis labels */}
         <View style={styles.yAxis}>
-          {[...yLabels].reverse().map((label, i) => (
-            <Text key={i} style={styles.yLabel}>{label}</Text>
+          {[...yLabels].reverse().map((val, i) => (
+            <Text key={i} style={styles.yLabel}>{val.toFixed(1)}</Text>
           ))}
         </View>
 
-        {/* Chart area */}
-        <View style={styles.chartArea}>
-          {/* Grid lines */}
-          {[0, 0.5, 1].map((frac, i) => (
-            <View
-              key={'g' + i}
-              style={[styles.gridLine, { bottom: `${frac * 100}%` }]}
-            />
-          ))}
+        {/* SVG Chart */}
+        <View style={styles.svgWrap}>
+          <Svg
+            width="100%"
+            height={CHART_HEIGHT}
+            viewBox={`0 0 ${SVG_WIDTH} ${CHART_HEIGHT}`}
+            preserveAspectRatio="none"
+          >
+            <Defs>
+              <SvgGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
+                <Stop offset="0%" stopColor={COLORS.accent} stopOpacity="0.3" />
+                <Stop offset="100%" stopColor={COLORS.accent} stopOpacity="0.02" />
+              </SvgGradient>
+              <SvgGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
+                <Stop offset="0%" stopColor={COLORS.accentDark} stopOpacity="0.8" />
+                <Stop offset="100%" stopColor={COLORS.accent} stopOpacity="1" />
+              </SvgGradient>
+            </Defs>
 
-          {/* Bars + dots */}
-          <View style={styles.barsRow}>
-            {chronological.map((entry, i) => {
-              const frac = normalise(entry.weight);
-              const heightPct = `${(frac * 100).toFixed(1)}%`;
-              const isLast = i === chronological.length - 1;
-              const dotSz = isLast ? ACTIVE_DOT_SIZE : DOT_SIZE;
-
+            {/* Grid lines */}
+            {yLabels.map((val, i) => {
+              const y = toY(val);
               return (
-                <View key={i} style={styles.barColumn}>
-                  {/* Column with gradient fill */}
-                  <View style={[styles.barWrapper, { height: heightPct }]}>
-                    <LinearGradient
-                      colors={
-                        isLast
-                          ? [COLORS.accent, COLORS.accent + '30']
-                          : [COLORS.accentDark + 'AA', COLORS.accentDark + '15']
-                      }
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 0, y: 1 }}
-                      style={styles.barFill}
-                    />
-                    {/* Dot at top */}
-                    <View
-                      style={[
-                        styles.dot,
-                        {
-                          width: dotSz,
-                          height: dotSz,
-                          borderRadius: dotSz / 2,
-                          marginTop: -dotSz / 2,
-                          backgroundColor: isLast ? COLORS.accent : COLORS.accentDark,
-                          borderColor: isLast ? COLORS.accent : COLORS.surface,
-                          borderWidth: isLast ? 2 : 1.5,
-                        },
-                        isLast && styles.dotGlow,
-                      ]}
-                    />
-                  </View>
-                </View>
+                <Line
+                  key={'grid-' + i}
+                  x1={0}
+                  y1={y}
+                  x2={SVG_WIDTH}
+                  y2={y}
+                  stroke={COLORS.surfaceBorder}
+                  strokeWidth={0.5}
+                  strokeDasharray="4,4"
+                />
               );
             })}
-          </View>
+
+            {/* Area fill */}
+            <Path
+              d={buildAreaPath(SVG_WIDTH)}
+              fill="url(#areaFill)"
+            />
+
+            {/* Line */}
+            <Path
+              d={buildLinePath(SVG_WIDTH)}
+              stroke="url(#lineGrad)"
+              strokeWidth={2}
+              fill="none"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+
+            {/* Data point dots */}
+            {chronological.map((entry, i) => {
+              const cx = toX(i, SVG_WIDTH);
+              const cy = toY(entry.weight);
+              const isLast = i === chronological.length - 1;
+
+              return (
+                <React.Fragment key={'dot-' + i}>
+                  {isLast && (
+                    <Circle
+                      cx={cx}
+                      cy={cy}
+                      r={ACTIVE_DOT_RADIUS + 4}
+                      fill={COLORS.accent}
+                      opacity={0.15}
+                    />
+                  )}
+                  <Circle
+                    cx={cx}
+                    cy={cy}
+                    r={isLast ? ACTIVE_DOT_RADIUS : DOT_RADIUS}
+                    fill={isLast ? COLORS.accent : COLORS.surface}
+                    stroke={isLast ? COLORS.accent : COLORS.accentDark}
+                    strokeWidth={isLast ? 2 : 1.5}
+                  />
+                </React.Fragment>
+              );
+            })}
+          </Svg>
         </View>
       </View>
 
-      {/* X-axis */}
-      <View style={[styles.xAxis, { marginLeft: 32 }]}>
+      {/* X-axis labels */}
+      <View style={styles.xAxis}>
         {chronological.map((entry, i) => (
           <View key={i} style={styles.xLabelSlot}>
             {xLabelSet.has(i) && (
@@ -218,7 +305,7 @@ const styles = StyleSheet.create({
     height: CHART_HEIGHT,
   },
   yAxis: {
-    width: 32,
+    width: Y_AXIS_WIDTH,
     justifyContent: 'space-between',
     alignItems: 'flex-end',
     paddingRight: SPACING.xs,
@@ -228,58 +315,15 @@ const styles = StyleSheet.create({
     fontSize: 9,
     color: COLORS.textMuted,
   },
-  chartArea: {
+  svgWrap: {
     flex: 1,
-    position: 'relative',
-  },
-  gridLine: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: COLORS.surfaceBorder,
-  },
-
-  // Bars
-  barsRow: {
-    flexDirection: 'row',
-    flex: 1,
-    alignItems: 'flex-end',
-    paddingHorizontal: 2,
-  },
-  barColumn: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    height: '100%',
-  },
-  barWrapper: {
-    width: BAR_WIDTH,
-    alignItems: 'center',
-    minHeight: 4,
-  },
-  barFill: {
-    flex: 1,
-    width: '100%',
-    borderTopLeftRadius: 2,
-    borderTopRightRadius: 2,
-  },
-  dot: {
-    position: 'absolute',
-    top: 0,
-    zIndex: 10,
-  },
-  dotGlow: {
-    shadowColor: COLORS.accent,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.7,
-    shadowRadius: 6,
-    elevation: 6,
+    height: CHART_HEIGHT,
   },
 
   // X-axis
   xAxis: {
     flexDirection: 'row',
+    marginLeft: Y_AXIS_WIDTH,
     marginTop: SPACING.xs,
   },
   xLabelSlot: {

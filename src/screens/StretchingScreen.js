@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
 import { useKeepAwake } from 'expo-keep-awake';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Svg, { Circle as SvgCircle, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -93,30 +94,47 @@ export default function StretchingScreen({ navigation }) {
   useEffect(() => { isTimerActiveRef.current = isTimerActive; }, [isTimerActive]);
   useEffect(() => { isPausedRef.current = isPaused; }, [isPaused]);
 
-  // Recalculate timer when app returns from background
-  // Uses refs instead of state to avoid stale closure issues.
+  // ── Background-resume correction ────────────────────────────────────────
+  // When the app goes to background, JS timers freeze. On resume we must
+  // recalculate timeRemaining from the wall-clock endTimeRef.
+  //
+  // Two layers ensure this works on every Android device:
+  //   1. AppState 'change' event  → fires on resume, corrects immediately
+  //   2. The setInterval tick     → always reads endTimeRef, self-corrects
+  //      even if AppState doesn't fire (e.g. when woken via notification)
   useEffect(() => {
-    const sub = AppState.addEventListener('change', (nextState) => {
+    const handleAppStateChange = (nextState) => {
       if (
         nextState === 'active' &&
         isTimerActiveRef.current &&
         !isPausedRef.current &&
         endTimeRef.current
       ) {
+        // Kill the old (dead) interval so we don't get duplicate ticks
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
+        }
+
         const remaining = Math.round((endTimeRef.current - Date.now()) / 1000);
         if (remaining <= 0) {
-          // Timer expired while in background — trigger alarm via state
-          if (timerRef.current) clearInterval(timerRef.current);
+          // Timer expired while in background → alarm
           setTimeRemaining(0);
-          setIsRinging(true); // alarm effect below will handle sound + vibration
+          setIsRinging(true);
           endTimeRef.current = null;
         } else {
-          setTimeRemaining(remaining);
+          // Force React to re-render with the corrected value.
+          // Setting to -1 first guarantees a state change even if
+          // `remaining` happens to equal the stale timeRemaining.
+          setTimeRemaining(-1);
+          setTimeout(() => setTimeRemaining(remaining), 0);
         }
       }
-    });
+    };
+
+    const sub = AppState.addEventListener('change', handleAppStateChange);
     return () => sub.remove();
-  }, []); // no deps — refs are always current
+  }, []); // no deps — all values read from refs
 
   // Play alarm when isRinging becomes true — kept separate so the interval
   // cleanup race can never prevent the sound from firing.
@@ -127,35 +145,24 @@ export default function StretchingScreen({ navigation }) {
     }
   }, [isRinging]);
 
-  // Timer logic — uses wall-clock endTimeRef for accuracy
+  // Timer logic — uses wall-clock endTimeRef for accuracy.
+  // The interval always derives remaining from endTimeRef (never from
+  // decrementing state), so even the first tick after a background freeze
+  // produces the correct value.
   useEffect(() => {
     if (isTimerActive && !isPaused && timeRemaining > 0) {
-      // Set the end time if not already set
+      // Set the absolute end time if not already set
       if (!endTimeRef.current) {
         endTimeRef.current = Date.now() + timeRemaining * 1000;
       }
 
-      // Immediately sync from wall-clock in case we just resumed from background
-      // and the interval was dead. This catches drift even without AppState.
-      const syncedRemaining = Math.round((endTimeRef.current - Date.now()) / 1000);
-      if (syncedRemaining <= 0) {
-        // Timer already expired (e.g. JS was frozen in background)
-        endTimeRef.current = null;
-        setTimeRemaining(0);
-        setIsRinging(true);
-        return; // don't start a new interval
-      }
-      if (syncedRemaining !== timeRemaining) {
-        setTimeRemaining(syncedRemaining);
-        return; // will re-run effect with corrected value
-      }
-
       timerRef.current = setInterval(() => {
+        if (!endTimeRef.current) return;
         const remaining = Math.round((endTimeRef.current - Date.now()) / 1000);
         if (remaining <= 0) {
           clearInterval(timerRef.current);
+          timerRef.current = null;
           endTimeRef.current = null;
-          // Set state — the isRinging effect handles sound & vibration
           setTimeRemaining(0);
           setIsRinging(true);
           return;
@@ -170,7 +177,10 @@ export default function StretchingScreen({ navigation }) {
       }, 1000);
     }
     return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
     };
   }, [isTimerActive, isPaused, timeRemaining, currentStretchIndex, currentSide, isResting]);
 
@@ -488,24 +498,55 @@ export default function StretchingScreen({ navigation }) {
           {/* Timer Circle */}
           <Animated.View style={[styles.timerCircleWrap, pulseStyle]}>
             <View style={styles.timerCircle}>
-              {/* Background ring */}
+              {/* SVG progress ring */}
               <View style={styles.svgContainer}>
-                <View
-                  style={[
-                    styles.ringBackground,
-                    {
-                      width: TIMER_SIZE,
-                      height: TIMER_SIZE,
-                      borderRadius: TIMER_SIZE / 2,
-                      borderWidth: CIRCLE_STROKE,
-                      borderColor: isResting
-                        ? COLORS.surfaceBorder
-                        : timeRemaining <= 3
-                        ? COLORS.danger + '60'
-                        : COLORS.accent + '40',
-                    },
-                  ]}
-                />
+                {(() => {
+                  const totalDuration = isResting
+                    ? REST_BETWEEN_STRETCHES
+                    : currentStretch.duration;
+                  const progress = totalDuration > 0 ? timeRemaining / totalDuration : 0;
+                  const radius = (TIMER_SIZE - CIRCLE_STROKE) / 2;
+                  const circumference = 2 * Math.PI * radius;
+                  const strokeDashoffset = circumference * (1 - progress);
+                  const ringColor = isResting
+                    ? COLORS.textMuted
+                    : timeRemaining <= 3
+                    ? COLORS.danger
+                    : COLORS.accent;
+
+                  return (
+                    <Svg width={TIMER_SIZE} height={TIMER_SIZE}>
+                      <Defs>
+                        <SvgGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
+                          <Stop offset="0%" stopColor={COLORS.accent} stopOpacity="1" />
+                          <Stop offset="100%" stopColor={COLORS.accentDark} stopOpacity="0.8" />
+                        </SvgGradient>
+                      </Defs>
+                      {/* Background track */}
+                      <SvgCircle
+                        cx={TIMER_SIZE / 2}
+                        cy={TIMER_SIZE / 2}
+                        r={radius}
+                        stroke={COLORS.surfaceBorder}
+                        strokeWidth={CIRCLE_STROKE}
+                        fill="none"
+                      />
+                      {/* Active arc */}
+                      <SvgCircle
+                        cx={TIMER_SIZE / 2}
+                        cy={TIMER_SIZE / 2}
+                        r={radius}
+                        stroke={isResting ? COLORS.textMuted : (timeRemaining <= 3 ? COLORS.danger : 'url(#ringGrad)')}
+                        strokeWidth={CIRCLE_STROKE}
+                        fill="none"
+                        strokeDasharray={circumference}
+                        strokeDashoffset={strokeDashoffset}
+                        strokeLinecap="round"
+                        transform={`rotate(-90 ${TIMER_SIZE / 2} ${TIMER_SIZE / 2})`}
+                      />
+                    </Svg>
+                  );
+                })()}
               </View>
               {/* Timer text */}
               <View style={styles.timerTextContainer}>

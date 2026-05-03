@@ -14,7 +14,7 @@ points → levels up their "Hunter" character.
 
 - **Platform**: Android-first (also compiles for iOS). Orientation: portrait only.
 - **Bundle ID**: `com.chakradharxd.SoloLevelingGym`
-- **App version**: `1.0.0` (native binary, rarely bumped)
+- **App version**: `1.1.0` (native binary, bumped when native deps change)
 - **OTA updates**: Delivered via `@hot-updater/react-native` against AWS S3. Channel = `production`.
   Local deployment uses `actwithcache publish-ota-update.yaml` (act workflow runner).
 
@@ -34,6 +34,7 @@ points → levels up their "Hunter" character.
 | Notifications | `expo-notifications` |
 | Fonts | `@expo-google-fonts/outfit` — Outfit 400/500/600/700 |
 | Icons | `@expo/vector-icons` → `MaterialCommunityIcons` exclusively |
+| SVG | `react-native-svg` 15.x — charts, progress rings |
 | Gradients | `expo-linear-gradient` |
 | OTA | `@hot-updater/react-native` 0.30.1 |
 | Compiler | React Compiler beta (`babel-plugin-react-compiler`) — **partially opted out** (see §9) |
@@ -76,6 +77,7 @@ SoloLevelingGym/
 │   │   ├── RankBadge.js             # Rank letter badge (E→S)
 │   │   ├── StatBar.js               # Horizontal stat progress bar
 │   │   ├── SystemPanel.js           # Glowing dark panel container
+│   │   ├── WeightChart.js           # SVG line chart for weight trend (used in WeightHistoryScreen)
 │   │   ├── WeightLogModal.js        # Tabbed body stats modal (Weight tab + Measurements tab)
 │   │   └── XPToast.js               # Floating XP toast notification
 │   └── utils/
@@ -260,9 +262,9 @@ Six dungeons, each with a **Solo Leveling-themed name**:
 
 | ID | Name | Split Label | Stat | Exercises |
 |---|---|---|---|---|
-| `push` | Crimson Fortress | PUSH | STR | 5 |
-| `pull` | Shadow Spire | PULL | PER | 5 |
-| `legs` | Titan's Path | LEGS | END | 6 (incl. Plank) |
+| `push` | Crimson Fortress | PUSH | STR | 6 (incl. Treadmill) |
+| `pull` | Shadow Spire | PULL | PER | 6 (incl. Treadmill) |
+| `legs` | Titan's Path | LEGS | END | 7 (incl. Plank + Treadmill) |
 | `recovery` | Iron Sanctum | REST | VIT | 4 |
 | `cardio` | Wind Temple | CARDIO | AGI | 4 |
 | `warmup_stretching` | Arcane Grove | FLEX | INT | 3 |
@@ -302,6 +304,7 @@ export const PPL_ROTATION = ['push', 'recovery', 'pull', 'recovery', 'legs'];
 | Machine Shoulder Press | 3 | 8–10 | Shoulders |
 | Lateral Raises | 3 | 12–15 | Side Delts |
 | Tricep Pushdowns | 3 | 10–12 | Triceps |
+| Incline Treadmill Walk | 1 | 10–15 min | Cardiovascular |
 
 ### 6.5 Pull Day Exercises
 
@@ -312,6 +315,7 @@ export const PPL_ROTATION = ['push', 'recovery', 'pull', 'recovery', 'legs'];
 | Face Pulls | 3 | 12–15 | Rear Delts |
 | Dumbbell Bicep Curls | 3 | 10–12 | Biceps |
 | Hammer Curls | 3 | 10–12 | Brachialis |
+| Incline Treadmill Walk | 1 | 10–15 min | Cardiovascular |
 
 ### 6.6 Leg Day Exercises
 
@@ -322,6 +326,7 @@ export const PPL_ROTATION = ['push', 'recovery', 'pull', 'recovery', 'legs'];
 | Leg Extension | 3 | 10–12 | Quads |
 | Calf Raises | 3 | 12–15 | Calves |
 | Plank | 3 | 30–40 sec | Core |
+| Incline Treadmill Walk | 1 | 10–15 min | Cardiovascular |
 
 ### 6.7 Recovery Day Exercises
 
@@ -570,6 +575,16 @@ Workflow: `publish-ota-update.yaml` (run via `actwithcache publish-ota-update.ya
 - `react-native-reanimated` 4.x and React Compiler beta can conflict on worklet functions.
 - If you see "Worklet evaluation failed" errors, check that the affected component is opted out with `'use no memo'`.
 
+### Stretch Timer Background-Resume
+- The stretch timer stores an absolute wall-clock end time in `endTimeRef`. When the app goes to background on Android, `setInterval` freezes.
+- On resume, two layers correct the timer:
+  1. `AppState` event handler reads `endTimeRef` via refs (not closures) and forces a `setTimeRemaining` update.
+  2. The `setInterval` callback always derives remaining time from `endTimeRef`, so even the first tick after resume self-corrects.
+- **Do not** use state variables (`isTimerActive`, `isPaused`) in the `AppState` handler — always use refs to avoid stale closures.
+
+### WeightChart Requires 2+ Data Points
+- `WeightChart` returns `null` if `data.length < 2`. The chart only renders when there are at least 2 weight log entries.
+
 ### SectionList in AddExercise Modal
 - `WorkoutScreen.js` uses `SectionList` (not `FlatList`) for the dungeon-grouped exercise browser.
 - `stickySectionHeadersEnabled={false}` to avoid visual glitches on Android.
@@ -644,5 +659,5 @@ Tapping LOG TODAY opens the modal with the Measurements tab pre-selectable.
 
 ---
 
-*Last updated: 2026-04-22. Update this file whenever the data model, dungeon split, or major
+*Last updated: 2026-05-04. Update this file whenever the data model, dungeon split, or major
 architectural patterns change.*
