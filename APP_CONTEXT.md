@@ -186,6 +186,7 @@ activeWorkout: {
       repRange: '8–12',           // string range (preferred for display)
       muscle: 'Chest',            // muscle group label (may be undefined on old data)
       icon: 'dumbbell',           // MaterialCommunityIcons name
+      dungeonId: 'push',          // parent dungeon ID (used for duration-cap logic)
     },
     // ...
   ],
@@ -467,6 +468,7 @@ All notifications use the `system_alerts` Android channel (importance MAX).
 | 13:00 | "Maintenance Break 🍱" | Lunch reminder |
 | 15:00 | "Mid-Day Boost ✨" | Smile reminder |
 | 18:00 | "Golden Hour Smile 🌅" | Smile reminder |
+| 18:30 | "Walking Protocol 🚶‍♂️" | Walking reminder |
 | 20:00 | "Evening Feast 🍖" | Dinner reminder |
 | 22:30 | "System Shutdown 💤" | Sleep reminder |
 
@@ -590,6 +592,21 @@ Workflow: `publish-ota-update.yaml` (run via `actwithcache publish-ota-update.ya
 - `stickySectionHeadersEnabled={false}` to avoid visual glitches on Android.
 - Sections are derived from `DUNGEONS` filtered to exclude `warmup_stretching` and exercises already in the active workout.
 
+### Rest Timer Between Sets
+- After completing a set, a countdown timer appears below the Timer/XP panel.
+- Default rest duration is **180 seconds (3 minutes)**, adjustable via `+`/`−` buttons in 30-second increments (range: 30s–300s).
+- Uses wall-clock based timing (`restEndTimeRef`) for accuracy across background/foreground transitions.
+- Plays `timer_complete` sound when the rest period ends. User can tap **SKIP** to dismiss early.
+- Each new set completion resets the rest timer to the configured duration.
+- The rest duration setting is session-local (not persisted across app restarts).
+
+### Workout Duration Cap (>3 Hour Safety)
+- If `Date.now() - workout.startTime > 3 hours` at the time `FINISH_WORKOUT` is dispatched, the recorded `endTime` and `duration` are clamped:
+  - **Flex-only workouts** (all exercises have `dungeonId === 'warmup_stretching'`): capped to **10 minutes**.
+  - **All other workouts**: capped to **2 hours**.
+- This prevents inflated durations when the user forgets to stop the workout.
+- `dungeonId` is now included in the formatted exercise shape in `activeWorkout` to support this check.
+
 ---
 
 ## 15. Stat → Dungeon Mapping
@@ -659,5 +676,5 @@ Tapping LOG TODAY opens the modal with the Measurements tab pre-selectable.
 
 ---
 
-*Last updated: 2026-05-04. Update this file whenever the data model, dungeon split, or major
+*Last updated: 2026-05-10. Update this file whenever the data model, dungeon split, or major
 architectural patterns change.*

@@ -1,26 +1,43 @@
+// React & React Native
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
+
+// Third-party
 import Animated, { FadeInUp, useSharedValue, useAnimatedStyle, withSpring, withRepeat, withTiming, interpolateColor } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import PropTypes from 'prop-types';
+
+// App config & utilities
 import { COLORS, RANK_COLORS, STAT_COLORS, FONTS, FONT_SIZES, SPACING, BORDER_RADIUS, SHADOWS } from '../theme';
 import { getExercisesForDungeon } from '../data/exercises';
+import { usePlayer } from '../store/PlayerContext';
 
+/**
+ * Dungeon selection card with animated glow and fade-in entry.
+ * Displays dungeon name, subtitle, rank, stat, and exercise count.
+ * @param {{ id: string, name: string, icon: string, stat: string, rank: string }} dungeon - Dungeon data object
+ * @param { function } onPress - Callback when card is tapped, receives dungeon object
+ * @param { number } index - Position index for staggered entry animation delay
+ */
 const DungeonCard = ({ dungeon, onPress, index = 0 }) => {
   const rankColor = RANK_COLORS[dungeon.rank] || COLORS.textSecondary;
   const statColor = STAT_COLORS[dungeon.stat] || COLORS.primary;
   const exercises = getExercisesForDungeon(dungeon.id);
+  const { settings } = usePlayer();
+  const animationsEnabled = settings?.animationsEnabled ?? true;
 
   const scale = useSharedValue(1);
   const glowOpacity = useSharedValue(0.3);
 
   React.useEffect(() => {
+    if (!animationsEnabled) return;
     glowOpacity.value = withRepeat(
       withTiming(0.7, { duration: 2000 }),
       -1,
       true
     );
-  }, []);
+  }, [animationsEnabled]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -38,7 +55,7 @@ const DungeonCard = ({ dungeon, onPress, index = 0 }) => {
 
   return (
     <Animated.View
-      entering={FadeInUp.delay(index * 100).duration(600)}
+      entering={animationsEnabled ? FadeInUp.delay(index * 100).duration(600) : undefined}
       style={styles.wrapper}
     >
       <Animated.View style={[styles.container, SHADOWS.soft, animatedStyle]}>
@@ -132,4 +149,22 @@ const styles = StyleSheet.create({
   },
   exerciseCount: { fontFamily: FONTS.body, fontSize: FONT_SIZES.xs, color: COLORS.textSecondary },
 });
+DungeonCard.propTypes = {
+  dungeon: PropTypes.shape({
+    id: PropTypes.string.isRequired,
+    name: PropTypes.string.isRequired,
+    subtitle: PropTypes.string,
+    icon: PropTypes.string,
+    stat: PropTypes.string,
+    rank: PropTypes.string,
+    splitLabel: PropTypes.string,
+  }).isRequired,
+  onPress: PropTypes.func.isRequired,
+  index: PropTypes.number,
+};
+
+DungeonCard.defaultProps = {
+  index: 0,
+};
+
 export default DungeonCard;

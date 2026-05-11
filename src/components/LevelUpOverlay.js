@@ -1,19 +1,38 @@
+// React & React Native
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, Dimensions, TouchableOpacity, Easing } from 'react-native';
+
+// Third-party
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import PropTypes from 'prop-types';
+
+// App config & utilities
 import { COLORS, RANK_COLORS, FONTS, FONT_SIZES, SPACING, BORDER_RADIUS, SHADOWS } from '../theme';
 import { RANK_TITLES } from '../utils/leveling';
+import { usePlayer } from '../store/PlayerContext';
+
+// Components
 import RankBadge from './RankBadge';
 
 const { width, height } = Dimensions.get('window');
 
+/**
+ * Full-screen overlay displayed on level-up events.
+ * Shows a cinematic fade-in with scale animation (when animations are enabled).
+ * @param {{ oldLevel: number, newLevel: number, newRank: string, rankUp: bool }} data - Level-up event data
+ * @param { function } onDismiss - Callback when overlay is tapped to dismiss
+ */
+
 const LevelUpOverlay = ({ data, onDismiss }) => {
-  const overlayOpacity = useRef(new Animated.Value(0)).current;
-  const contentScale = useRef(new Animated.Value(0.9)).current;
-  const contentOpacity = useRef(new Animated.Value(0)).current;
-  const textOpacity = useRef(new Animated.Value(0)).current;
+  const { settings } = usePlayer();
+  const animationsEnabled = settings?.animationsEnabled ?? true;
+  const overlayOpacity = useRef(new Animated.Value(animationsEnabled ? 0 : 1)).current;
+  const contentScale = useRef(new Animated.Value(animationsEnabled ? 0.9 : 1)).current;
+  const contentOpacity = useRef(new Animated.Value(animationsEnabled ? 0 : 1)).current;
+  const textOpacity = useRef(new Animated.Value(animationsEnabled ? 0 : 1)).current;
 
   useEffect(() => {
+    if (!animationsEnabled) return;
     // Sequence of animations for CRED-like sleek entry
     Animated.sequence([
       Animated.timing(overlayOpacity, {
@@ -170,5 +189,19 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
 });
+
+LevelUpOverlay.propTypes = {
+  data: PropTypes.shape({
+    oldLevel: PropTypes.number,
+    newLevel: PropTypes.number,
+    newRank: PropTypes.string,
+    rankUp: PropTypes.bool,
+  }),
+  onDismiss: PropTypes.func.isRequired,
+};
+
+LevelUpOverlay.defaultProps = {
+  data: null,
+};
 
 export default LevelUpOverlay;

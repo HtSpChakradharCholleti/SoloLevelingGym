@@ -11,6 +11,7 @@ import { usePlayer } from '../store/PlayerContext';
 import { EXERCISES, DUNGEONS } from '../data/exercises';
 import SystemPanel from '../components/SystemPanel';
 import XPToast from '../components/XPToast';
+import SoundManager from '../utils/SoundManager';
 
 // ─── Inline ExerciseRow with remove button ────────────────────────────────────
 function ExerciseRow({ exercise, completedSets = [], totalSets, onCompleteSet, onRemove, index }) {
@@ -371,7 +372,12 @@ export default function WorkoutScreen({ navigation }) {
   const [elapsed, setElapsed] = useState(0);
   const [toasts, setToasts] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [restTimeRemaining, setRestTimeRemaining] = useState(0);
+  const [restDuration, setRestDuration] = useState(180); // 3 minutes default
+  const [restRestartKey, setRestRestartKey] = useState(0);
   const timerRef = useRef(null);
+  const restTimerRef = useRef(null);
+  const restEndTimeRef = useRef(null);
 
   useEffect(() => {
     if (activeWorkout) {
@@ -381,6 +387,33 @@ export default function WorkoutScreen({ navigation }) {
     }
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [activeWorkout]);
+
+  // Rest timer — wall-clock based for accuracy across bg/fg transitions
+  // restRestartKey forces re-init even when restTimeRemaining value doesn't change
+  useEffect(() => {
+    if (restTimeRemaining > 0) {
+      restEndTimeRef.current = Date.now() + restTimeRemaining * 1000;
+      restTimerRef.current = setInterval(() => {
+        const remaining = Math.max(
+          0,
+          Math.ceil((restEndTimeRef.current - Date.now()) / 1000)
+        );
+        setRestTimeRemaining(remaining);
+        if (remaining <= 0) {
+          clearInterval(restTimerRef.current);
+          restTimerRef.current = null;
+          restEndTimeRef.current = null;
+          SoundManager.playTimerComplete();
+        }
+      }, 250);
+    }
+    return () => {
+      if (restTimerRef.current) {
+        clearInterval(restTimerRef.current);
+        restTimerRef.current = null;
+      }
+    };
+  }, [restRestartKey]);
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -395,7 +428,16 @@ export default function WorkoutScreen({ navigation }) {
     completeExerciseSet(exerciseId, setIndex, exercise.baseXP, exercise.stat);
     const toastId = Date.now();
     setToasts(prev => [...prev, { id: toastId, amount: exercise.baseXP, stat: exercise.stat }]);
-  }, [activeWorkout, completeExerciseSet]);
+
+    // Restart rest timer — clear any existing, then bump restartKey to force useEffect re-run
+    if (restTimerRef.current) {
+      clearInterval(restTimerRef.current);
+      restTimerRef.current = null;
+    }
+    restEndTimeRef.current = null;
+    setRestTimeRemaining(restDuration);
+    setRestRestartKey(k => k + 1);
+  }, [activeWorkout, completeExerciseSet, restDuration]);
 
   const removeToast = useCallback((id) => {
     setToasts(prev => prev.filter(t => t.id !== id));
@@ -504,6 +546,37 @@ export default function WorkoutScreen({ navigation }) {
           </View>
         </SystemPanel>
 
+        {/* Rest Timer */}
+        {restTimeRemaining > 0 && (
+          <View style={styles.restTimerBar}>
+            <View style={styles.restTimerContent}>
+              <MaterialCommunityIcons name="timer-sand" size={18} color={COLORS.accent} />
+              <Text style={styles.restTimerText}>REST  {formatTime(restTimeRemaining)}</Text>
+              <TouchableOpacity
+                onPress={() => {
+                  if (restTimerRef.current) {
+                    clearInterval(restTimerRef.current);
+                    restTimerRef.current = null;
+                  }
+                  restEndTimeRef.current = null;
+                  setRestTimeRemaining(0);
+                }}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Text style={styles.restSkipText}>SKIP</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.restProgressOuter}>
+              <View
+                style={[
+                  styles.restProgressFill,
+                  { width: `${(restTimeRemaining / restDuration) * 100}%` },
+                ]}
+              />
+            </View>
+          </View>
+        )}
+
         {/* Exercise List header row */}
         <View style={styles.sectionRow}>
           <Text style={styles.sectionTitle}>EXERCISES</Text>
@@ -515,6 +588,26 @@ export default function WorkoutScreen({ navigation }) {
             <MaterialCommunityIcons name="plus" size={16} color={COLORS.accent} />
             <Text style={styles.addExText}>ADD</Text>
           </TouchableOpacity>
+        </View>
+
+        {/* Rest Duration Config */}
+        <View style={styles.restConfigRow}>
+          <Text style={styles.restConfigLabel}>REST TIMER</Text>
+          <View style={styles.restConfigControls}>
+            <TouchableOpacity
+              onPress={() => setRestDuration(d => Math.max(30, d - 30))}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <MaterialCommunityIcons name="minus-circle-outline" size={22} color={COLORS.textSecondary} />
+            </TouchableOpacity>
+            <Text style={styles.restConfigValue}>{formatTime(restDuration)}</Text>
+            <TouchableOpacity
+              onPress={() => setRestDuration(d => Math.min(300, d + 30))}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <MaterialCommunityIcons name="plus-circle-outline" size={22} color={COLORS.textSecondary} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {activeWorkout.exercises.length === 0 ? (
@@ -723,5 +816,80 @@ const styles = StyleSheet.create({
   stretchButtonText: {
     fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md,
     fontWeight: '600', color: COLORS.accent,
+  },
+
+  // Rest Timer
+  restTimerBar: {
+    backgroundColor: COLORS.surface,
+    borderRadius: BORDER_RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.accent + '40',
+    padding: SPACING.md,
+    marginBottom: SPACING.sm,
+  },
+  restTimerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: SPACING.sm,
+  },
+  restTimerText: {
+    fontFamily: FONTS.heading,
+    fontSize: FONT_SIZES.lg,
+    fontWeight: '700',
+    color: COLORS.accent,
+    letterSpacing: 1,
+    flex: 1,
+    marginLeft: SPACING.sm,
+  },
+  restSkipText: {
+    fontFamily: FONTS.heading,
+    fontSize: FONT_SIZES.xs,
+    fontWeight: '700',
+    color: COLORS.textSecondary,
+    letterSpacing: 1.5,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xs,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceBorder,
+    borderRadius: BORDER_RADIUS.sm,
+  },
+  restProgressOuter: {
+    height: 4,
+    backgroundColor: COLORS.surfaceLight,
+    borderRadius: BORDER_RADIUS.round,
+    overflow: 'hidden',
+  },
+  restProgressFill: {
+    height: '100%',
+    backgroundColor: COLORS.accent,
+    borderRadius: BORDER_RADIUS.round,
+  },
+  restConfigRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: SPACING.md,
+    paddingHorizontal: SPACING.xs,
+  },
+  restConfigLabel: {
+    fontFamily: FONTS.heading,
+    fontSize: FONT_SIZES.xs,
+    fontWeight: '700',
+    color: COLORS.textMuted,
+    letterSpacing: 1,
+  },
+  restConfigControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+  },
+  restConfigValue: {
+    fontFamily: FONTS.heading,
+    fontSize: FONT_SIZES.md,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    minWidth: 48,
+    textAlign: 'center',
   },
 });

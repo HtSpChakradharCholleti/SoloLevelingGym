@@ -1,18 +1,38 @@
+// React & React Native
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+
+// Third-party
 import Animated, { FadeInLeft, Layout } from 'react-native-reanimated';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import PropTypes from 'prop-types';
+
+// App config & utilities
 import { COLORS, STAT_COLORS, FONTS, FONT_SIZES, SPACING, BORDER_RADIUS, SHADOWS } from '../theme';
+import { usePlayer } from '../store/PlayerContext';
+
+/**
+ * Exercise list item with set completion buttons and stat indicator.
+ * Conditionally animates entry based on the global animations setting.
+ * @param {{ id: string, name: string, stat: string, baseXP: number, icon: string, reps: number, repRange: string, muscle: string }} exercise - Exercise data
+ * @param { Array<bool> } completedSets - Array of booleans for each set's completion status
+ * @param { number } totalSets - Total number of sets for this exercise
+ * @param { function } onCompleteSet - Callback(exerciseId, setIndex) when a set button is tapped
+ * @param { bool } showAction - Whether to show the set completion buttons
+ * @param { number } index - Position index for staggered entry animation delay
+ */
 
 const ExerciseItem = ({ exercise, completedSets = [], totalSets, onCompleteSet, showAction = true, index = 0 }) => {
   const statColor = STAT_COLORS[exercise.stat] || COLORS.primary;
   const completedCount = completedSets.filter(Boolean).length;
   const allDone = completedCount >= totalSets;
+  const { settings } = usePlayer();
+  const animationsEnabled = settings?.animationsEnabled ?? true;
 
   return (
     <Animated.View 
-      entering={FadeInLeft.delay(index * 100).duration(500)}
-      layout={Layout.duration(400)}
+      entering={animationsEnabled ? FadeInLeft.delay(index * 100).duration(500) : undefined}
+      layout={animationsEnabled ? Layout.duration(400) : undefined}
       style={styles.wrapper}
     >
       <View style={[styles.container, SHADOWS.soft, allDone && styles.containerDone]}>
@@ -76,4 +96,29 @@ const styles = StyleSheet.create({
   setButton: { width: 24, height: 24, borderRadius: BORDER_RADIUS.sm, borderWidth: 1.5, borderColor: COLORS.surfaceBorder, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.surfaceLight },
   setNum: { fontFamily: FONTS.body, fontSize: FONT_SIZES.xs, color: COLORS.textSecondary, fontWeight: '600' },
 });
+ExerciseItem.propTypes = {
+  exercise: PropTypes.shape({
+    id: PropTypes.string.isRequired,
+    name: PropTypes.string.isRequired,
+    stat: PropTypes.string,
+    baseXP: PropTypes.number,
+    icon: PropTypes.string,
+    reps: PropTypes.number,
+    repRange: PropTypes.string,
+    muscle: PropTypes.string,
+  }).isRequired,
+  completedSets: PropTypes.arrayOf(PropTypes.bool),
+  totalSets: PropTypes.number.isRequired,
+  onCompleteSet: PropTypes.func,
+  showAction: PropTypes.bool,
+  index: PropTypes.number,
+};
+
+ExerciseItem.defaultProps = {
+  completedSets: [],
+  showAction: true,
+  index: 0,
+  onCompleteSet: () => {},
+};
+
 export default ExerciseItem;

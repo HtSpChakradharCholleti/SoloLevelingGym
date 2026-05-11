@@ -1,21 +1,39 @@
+// React & React Native
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
+
+// Third-party
 import Animated, { FadeInLeft, Layout, useSharedValue, useAnimatedStyle, withSpring, withTiming, withRepeat, interpolateColor } from 'react-native-reanimated';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import PropTypes from 'prop-types';
+
+// App config & utilities
 import { COLORS, STAT_COLORS, FONTS, FONT_SIZES, SPACING, BORDER_RADIUS, SHADOWS } from '../theme';
+import { usePlayer } from '../store/PlayerContext';
+
+/**
+ * Quest card with animated glow border and completion state.
+ * Shows quest text, stat badge, XP reward, and completion checkbox.
+ * @param {{ id: string, text: string, stat: string, xpReward: number, completed: bool, isBonus: bool }} quest - Quest data
+ * @param { function } onComplete - Callback when quest is tapped to complete
+ * @param { number } index - Position index for staggered entry animation
+ */
 
 const QuestCard = ({ quest, onComplete, index = 0 }) => {
   const statColor = quest.stat === 'ALL' ? COLORS.warning : STAT_COLORS[quest.stat] || COLORS.primary;
+  const { settings } = usePlayer();
+  const animationsEnabled = settings?.animationsEnabled ?? true;
   const scale = useSharedValue(1);
   const glowOpacity = useSharedValue(0.2);
 
   React.useEffect(() => {
+    if (!animationsEnabled) return;
     glowOpacity.value = withRepeat(
       withTiming(0.5, { duration: 1500 }),
       -1,
       true
     );
-  }, []);
+  }, [animationsEnabled]);
 
   const animatedStyle = useAnimatedStyle(() => ({ 
     transform: [{ scale: scale.value }],
@@ -28,8 +46,8 @@ const QuestCard = ({ quest, onComplete, index = 0 }) => {
 
   return (
     <Animated.View
-      entering={FadeInLeft.delay(index * 100).duration(500)}
-      layout={Layout.duration(400)}
+      entering={animationsEnabled ? FadeInLeft.delay(index * 100).duration(500) : undefined}
+      layout={animationsEnabled ? Layout.duration(400) : undefined}
       style={styles.wrapper}
     >
       <Animated.View style={[styles.container, SHADOWS.soft, quest.completed && styles.completed, animatedStyle]}>
@@ -92,4 +110,21 @@ const styles = StyleSheet.create({
   xpValue: { fontFamily: FONTS.heading, fontSize: FONT_SIZES.lg, fontWeight: '700' },
   xpLabel: { fontFamily: FONTS.body, fontSize: FONT_SIZES.xs, color: COLORS.textMuted },
 });
+QuestCard.propTypes = {
+  quest: PropTypes.shape({
+    id: PropTypes.string.isRequired,
+    text: PropTypes.string.isRequired,
+    stat: PropTypes.string,
+    xpReward: PropTypes.number,
+    completed: PropTypes.bool,
+    isBonus: PropTypes.bool,
+  }).isRequired,
+  onComplete: PropTypes.func.isRequired,
+  index: PropTypes.number,
+};
+
+QuestCard.defaultProps = {
+  index: 0,
+};
+
 export default QuestCard;

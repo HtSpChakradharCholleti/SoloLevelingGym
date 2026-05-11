@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useCallback, useMemo } from 'react';
 import { storage } from './storage';
 import { processXPGain, getRankForLevel, getStatLevel } from '../utils/leveling';
 import { generateDailyQuests, shouldResetQuests, getTodayString } from '../utils/quests';
@@ -211,6 +211,21 @@ function playerReducer(state, action) {
       const workout = state.activeWorkout;
       if (!workout) return state;
 
+      const now = Date.now();
+      let effectiveEndTime = now;
+
+      // If workout has been running > 3 hours, cap the recorded duration
+      const THREE_HOURS = 3 * 60 * 60 * 1000;
+      if (now - workout.startTime > THREE_HOURS) {
+        const isFlexOnly = workout.exercises.every(
+          e => e.dungeonId === 'warmup_stretching'
+        );
+        const maxDuration = isFlexOnly
+          ? 10 * 60 * 1000       // 10 minutes for flex
+          : 2 * 60 * 60 * 1000;  // 2 hours for everything else
+        effectiveEndTime = workout.startTime + maxDuration;
+      }
+
       const today = getTodayString();
       const isConsecutive = state.lastWorkoutDate &&
         isConsecutiveDay(state.lastWorkoutDate, today);
@@ -222,8 +237,8 @@ function playerReducer(state, action) {
         id: `workout_${Date.now()}`,
         date: today,
         startTime: workout.startTime,
-        endTime: Date.now(),
-        duration: Date.now() - workout.startTime,
+        endTime: effectiveEndTime,
+        duration: effectiveEndTime - workout.startTime,
         exercises: workout.exercises.map(e => ({
           id: e.id,
           name: e.name,
@@ -424,6 +439,7 @@ export function PlayerProvider({ children }) {
       baseXP: e.baseXP,
       sets: e.defaultSets,
       reps: e.defaultReps,
+      dungeonId: e.dungeonId,
     }));
     SoundManager.playTap();
     dispatch({ type: ActionTypes.START_WORKOUT, payload: { exercises: formattedExercises } });
@@ -441,6 +457,7 @@ export function PlayerProvider({ children }) {
       repRange: exercise.repRange,
       muscle: exercise.muscle,
       icon: exercise.icon,
+      dungeonId: exercise.dungeonId,
     };
     SoundManager.playTap();
     dispatch({ type: ActionTypes.ADD_EXERCISE_TO_WORKOUT, payload: formatted });
@@ -525,7 +542,7 @@ export function PlayerProvider({ children }) {
     }
   }, []);
 
-  const value = {
+  const value = useMemo(() => ({
     ...state,
     weightHistory: state.weightHistory || [],
     measurementsHistory: state.measurementsHistory || [],
@@ -544,7 +561,10 @@ export function PlayerProvider({ children }) {
     logMeasurement,
     updateSetting,
     resetAll,
-  };
+  }), [state, gainXP, gainStatXP, completeQuest, startWorkout,
+    addExerciseToWorkout, removeExerciseFromWorkout, completeExerciseSet,
+    finishWorkout, cancelWorkout, dismissLevelUp, setPlayerName,
+    logWeight, logMeasurement, updateSetting, resetAll]);
 
   return (
     <PlayerContext.Provider value={value}>

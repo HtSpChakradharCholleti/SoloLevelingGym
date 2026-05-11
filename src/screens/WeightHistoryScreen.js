@@ -41,8 +41,9 @@ function formatDate(dateStr) {
 }
 
 export default function WeightHistoryScreen({ navigation }) {
-  const { weightHistory, measurementsHistory } = usePlayer();
+  const { weightHistory, measurementsHistory, settings } = usePlayer();
   const [activeTab, setActiveTab] = useState(TAB_WEIGHT);
+  const animationsEnabled = settings?.animationsEnabled ?? true;
 
   // ── Weight stats ──────────────────────────────────────────────────────────
   const weights = weightHistory.map(h => h.weight);
@@ -136,7 +137,7 @@ export default function WeightHistoryScreen({ navigation }) {
                   return (
                     <Animated.View
                       key={entry.date}
-                      entering={FadeInDown.delay(index * 50).duration(400)}
+                      entering={animationsEnabled ? FadeInDown.delay(index * 50).duration(400) : undefined}
                       style={styles.historyCard}
                     >
                       <View style={styles.cardHeader}>
@@ -191,7 +192,7 @@ export default function WeightHistoryScreen({ navigation }) {
                 measurementsHistory.map((entry, index) => (
                   <Animated.View
                     key={entry.date + index}
-                    entering={FadeInDown.delay(index * 50).duration(400)}
+                    entering={animationsEnabled ? FadeInDown.delay(index * 50).duration(400) : undefined}
                     style={styles.historyCard}
                   >
                     <Text style={styles.cardDate}>{formatDate(entry.date)}</Text>

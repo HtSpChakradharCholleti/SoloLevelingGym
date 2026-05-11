@@ -1,13 +1,279 @@
-import React from 'react';
-import { View, Text, ScrollView, FlatList, StyleSheet } from 'react-native';
+// React & React Native
+import React, { useState, useMemo } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+
+// Third-party
+import Svg, {
+  Rect, Defs,
+  LinearGradient as SvgGradient, Stop,
+  Line, Text as SvgText,
+} from 'react-native-svg';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import PropTypes from 'prop-types';
+
+// App config & utilities
 import { COLORS, STAT_COLORS, FONTS, FONT_SIZES, SPACING, BORDER_RADIUS } from '../theme';
 import { usePlayer } from '../store/PlayerContext';
+
+// Components
 import SystemPanel from '../components/SystemPanel';
 
+// ─── XP Per-Day Bar Chart ─────────────────────────────────────────────────────
+const CHART_DAYS = 14;
+const BAR_CHART_HEIGHT = 120;
+const BAR_RADIUS = 3;
+
+/**
+ * SVG bar chart showing XP earned per day for the last 14 days.
+ * Purple gradient bars match the Shadow Army theme; today is highlighted in gold.
+ * @param { Array<{ date: string, xpEarned: number }> } workoutHistory - Workout entries with date and XP
+ */
+function XPBarChart({ workoutHistory }) {
+  // Build daily XP map for the last CHART_DAYS days
+  const { dailyData, maxXP, totalXP } = useMemo(() => {
+    const map = {};
+    // Aggregate XP per date
+    workoutHistory.forEach(w => {
+      map[w.date] = (map[w.date] || 0) + (w.xpEarned || 0);
+    });
+
+    // Build array for last N days (oldest → newest)
+    const days = [];
+    const today = new Date();
+    for (let i = CHART_DAYS - 1; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().split('T')[0];
+      const dayLabel = d.toLocaleDateString('en-US', { weekday: 'narrow' }); // M, T, W…
+      const xp = map[dateStr] || 0;
+      days.push({ dateStr, dayLabel, xp, isToday: i === 0 });
+    }
+
+    const max = Math.max(...days.map(d => d.xp), 1);
+    const total = days.reduce((s, d) => s + d.xp, 0);
+    return { dailyData: days, maxXP: max, totalXP: total };
+  }, [workoutHistory]);
+
+  if (workoutHistory.length === 0) return null;
+
+  // Average XP per active day (days with > 0 XP)
+  const activeDays = dailyData.filter(d => d.xp > 0).length;
+  const avgXP = activeDays > 0 ? Math.round(totalXP / activeDays) : 0;
+
+  const SVG_WIDTH = 300;
+  const barGap = 3;
+  const barWidth = (SVG_WIDTH - barGap * (CHART_DAYS - 1)) / CHART_DAYS;
+  const minBarHeight = 3; // show a tiny mark for zero-XP days
+
+  return (
+    <View style={chartStyles.container}>
+      {/* Header */}
+      <View style={chartStyles.headerRow}>
+        <View style={chartStyles.headerLeft}>
+          <MaterialCommunityIcons name="chart-bar" size={14} color="#6b3fa0" />
+          <Text style={chartStyles.title}>XP PER DAY</Text>
+        </View>
+        <View style={chartStyles.headerRight}>
+          <Text style={chartStyles.avgLabel}>AVG </Text>
+          <Text style={chartStyles.avgValue}>{avgXP} XP</Text>
+        </View>
+      </View>
+
+      {/* SVG Bar Chart */}
+      <View style={chartStyles.svgWrap}>
+        <Svg
+          width="100%"
+          height={BAR_CHART_HEIGHT}
+          viewBox={`0 0 ${SVG_WIDTH} ${BAR_CHART_HEIGHT}`}
+          preserveAspectRatio="none"
+        >
+          <Defs>
+            <SvgGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
+              <Stop offset="0%" stopColor="#9b6fd4" stopOpacity="1" />
+              <Stop offset="100%" stopColor="#6b3fa0" stopOpacity="0.7" />
+            </SvgGradient>
+            <SvgGradient id="barGradToday" x1="0" y1="0" x2="0" y2="1">
+              <Stop offset="0%" stopColor={COLORS.accent} stopOpacity="1" />
+              <Stop offset="100%" stopColor={COLORS.accentDark} stopOpacity="0.8" />
+            </SvgGradient>
+          </Defs>
+
+          {/* Bars */}
+          {dailyData.map((day, i) => {
+            const barH = day.xp > 0
+              ? Math.max((day.xp / maxXP) * (BAR_CHART_HEIGHT - 20), minBarHeight)
+              : minBarHeight;
+            const x = i * (barWidth + barGap);
+            const y = BAR_CHART_HEIGHT - barH;
+
+            return (
+              <React.Fragment key={day.dateStr}>
+                <Rect
+                  x={x}
+                  y={y}
+                  width={barWidth}
+                  height={barH}
+                  rx={BAR_RADIUS}
+                  ry={BAR_RADIUS}
+                  fill={day.isToday ? 'url(#barGradToday)' : (day.xp > 0 ? 'url(#barGrad)' : COLORS.surfaceLight)}
+                  opacity={day.xp > 0 ? 1 : 0.4}
+                />
+                {/* XP label on top of bar for high-XP days */}
+                {day.xp > 0 && (
+                  <SvgText
+                    x={x + barWidth / 2}
+                    y={y - 3}
+                    fontSize="8"
+                    fill={COLORS.textMuted}
+                    textAnchor="middle"
+                    fontFamily="Outfit_400Regular"
+                  >
+                    {day.xp}
+                  </SvgText>
+                )}
+              </React.Fragment>
+            );
+          })}
+        </Svg>
+      </View>
+
+      {/* Day labels */}
+      <View style={chartStyles.dayLabelsRow}>
+        {dailyData.map((day, i) => (
+          <Text
+            key={i}
+            style={[
+              chartStyles.dayLabel,
+              day.isToday && chartStyles.dayLabelToday,
+            ]}
+          >
+            {day.dayLabel}
+          </Text>
+        ))}
+      </View>
+
+      {/* Footer summary */}
+      <View style={chartStyles.footerRow}>
+        <Text style={chartStyles.footerLabel}>Last {CHART_DAYS} days</Text>
+        <Text style={chartStyles.footerValue}>
+          {totalXP} <Text style={chartStyles.footerUnit}>XP total</Text>
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+const chartStyles = StyleSheet.create({
+  container: {
+    backgroundColor: COLORS.surface,
+    borderRadius: BORDER_RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceBorder,
+    padding: SPACING.md,
+    marginBottom: SPACING.lg,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING.md,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+  },
+  title: {
+    fontFamily: FONTS.heading,
+    fontSize: FONT_SIZES.xs,
+    fontWeight: '700',
+    color: COLORS.textSecondary,
+    letterSpacing: 2,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
+  avgLabel: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textMuted,
+  },
+  avgValue: {
+    fontFamily: FONTS.heading,
+    fontSize: FONT_SIZES.sm,
+    fontWeight: '700',
+    color: '#9b6fd4',
+  },
+  svgWrap: {
+    height: BAR_CHART_HEIGHT,
+  },
+  dayLabelsRow: {
+    flexDirection: 'row',
+    marginTop: SPACING.xs,
+  },
+  dayLabel: {
+    flex: 1,
+    textAlign: 'center',
+    fontFamily: FONTS.body,
+    fontSize: 9,
+    color: COLORS.textMuted,
+  },
+  dayLabelToday: {
+    color: COLORS.accent,
+    fontWeight: '700',
+  },
+  footerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: SPACING.sm,
+    paddingTop: SPACING.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: COLORS.surfaceBorder,
+  },
+  footerLabel: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textMuted,
+  },
+  footerValue: {
+    fontFamily: FONTS.heading,
+    fontSize: FONT_SIZES.md,
+    fontWeight: '700',
+    color: '#9b6fd4',
+  },
+  footerUnit: {
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textMuted,
+    fontWeight: '400',
+  },
+});
+
+XPBarChart.propTypes = {
+  workoutHistory: PropTypes.arrayOf(
+    PropTypes.shape({
+      date: PropTypes.string.isRequired,
+      xpEarned: PropTypes.number,
+    })
+  ).isRequired,
+};
+
+// ─── Main HistoryScreen ───────────────────────────────────────────────────────
+
+/**
+ * Shadow Army tab screen — displays workout history, streak stats,
+ * and an XP-per-day bar chart for the last 14 days.
+ */
 export default function HistoryScreen() {
-  const { workoutHistory, totalWorkouts, currentStreak, bestStreak } = usePlayer();
+  const { workoutHistory, totalWorkouts, currentStreak, bestStreak, settings } = usePlayer();
+  const animationsEnabled = settings?.animationsEnabled ?? true;
+
+  const [showAllHistory, setShowAllHistory] = useState(false);
+  const INITIAL_ITEMS = 10;
+  const visibleHistory = showAllHistory ? workoutHistory : workoutHistory.slice(0, INITIAL_ITEMS);
+  const hasMore = workoutHistory.length > INITIAL_ITEMS;
 
   const formatDuration = (ms) => {
     const mins = Math.floor(ms / 60000);
@@ -32,7 +298,11 @@ export default function HistoryScreen() {
   };
 
   const renderWorkoutItem = (entry, index) => (
-    <Animated.View key={entry.id} entering={FadeInUp.delay(index * 100).duration(500)} style={styles.historyItem}>
+    <Animated.View
+      key={entry.id}
+      entering={animationsEnabled && index < 5 ? FadeInUp.delay(index * 80).duration(400) : undefined}
+      style={styles.historyItem}
+    >
       {/* Date & Duration */}
       <View style={styles.itemHeader}>
         <View style={styles.dateArea}>
@@ -83,17 +353,20 @@ export default function HistoryScreen() {
       <View style={styles.summaryRow}>
         <View style={styles.summaryCard}>
           <Text style={styles.summaryValue}>{totalWorkouts}</Text>
-          <Text style={styles.summaryLabel}>Total Battles</Text>
+          <Text style={styles.summaryLabel}>BATTLES</Text>
         </View>
         <View style={styles.summaryCard}>
-          <Text style={styles.summaryValue}>{currentStreak} 🔥</Text>
-          <Text style={styles.summaryLabel}>Current Streak</Text>
+          <Text style={styles.summaryValue}>{currentStreak}</Text>
+          <Text style={styles.summaryLabel}>STREAK</Text>
         </View>
         <View style={styles.summaryCard}>
           <Text style={styles.summaryValue}>{bestStreak}</Text>
-          <Text style={styles.summaryLabel}>Best Streak</Text>
+          <Text style={styles.summaryLabel}>BEST</Text>
         </View>
       </View>
+
+      {/* XP Per Day Chart */}
+      <XPBarChart workoutHistory={workoutHistory} />
 
       {/* History List */}
       {workoutHistory.length === 0 ? (
@@ -105,7 +378,18 @@ export default function HistoryScreen() {
       ) : (
         <View style={styles.historyList}>
           <Text style={styles.listTitle}>BATTLE LOG</Text>
-          {workoutHistory.map((entry, index) => renderWorkoutItem(entry, index))}
+          {visibleHistory.map((entry, index) => renderWorkoutItem(entry, index))}
+          {hasMore && !showAllHistory && (
+            <TouchableOpacity
+              style={styles.showMoreBtn}
+              onPress={() => setShowAllHistory(true)}
+            >
+              <Text style={styles.showMoreText}>
+                Show {workoutHistory.length - INITIAL_ITEMS} more battles
+              </Text>
+              <MaterialCommunityIcons name="chevron-down" size={18} color={COLORS.accent} />
+            </TouchableOpacity>
+          )}
         </View>
       )}
     </ScrollView>
@@ -262,5 +546,23 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: SPACING.sm,
     paddingHorizontal: SPACING.xxl,
+  },
+  showMoreBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.xs,
+    paddingVertical: SPACING.md,
+    marginTop: SPACING.sm,
+    backgroundColor: COLORS.surface,
+    borderRadius: BORDER_RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceBorder,
+  },
+  showMoreText: {
+    fontFamily: FONTS.bodySemiBold,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.accent,
+    letterSpacing: 1,
   },
 });

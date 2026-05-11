@@ -10,6 +10,8 @@ import StatBar from '../components/StatBar';
 import RankBadge from '../components/RankBadge';
 import NotificationManager from '../utils/NotificationManager';
 import WeightLogModal from '../components/WeightLogModal';
+import { testOTAConnectivity, checkForOTAUpdate } from '../utils/otaDiagnostics';
+import { HotUpdater } from '@hot-updater/react-native';
 
 const { width } = Dimensions.get('window');
 
@@ -22,9 +24,70 @@ export default function HunterProfileScreen({ navigation }) {
 
   const [isWeightModalVisible, setIsWeightModalVisible] = useState(false);
 
+  // OTA state machine: idle | testing | checking | downloading | success | up_to_date | error
+  const [otaStatus, setOtaStatus] = useState('idle');
+  const [otaLatency, setOtaLatency] = useState(null);
+  const [updateProgress, setUpdateProgress] = useState(0);
+
+  const handleTestOTA = async () => {
+    setOtaStatus('testing');
+    setOtaLatency(null);
+    try {
+      const result = await testOTAConnectivity();
+      if (result.isReachable) {
+        setOtaLatency(result.latencyMs);
+        setOtaStatus('success');
+      } else {
+        setOtaStatus('error');
+        Alert.alert(
+          'Connection Failed',
+          `${result.hasInternet ? 'Internet OK but OTA server unreachable' : 'No internet connection'}\n\n${result.error}`,
+        );
+      }
+    } catch (error) {
+      setOtaStatus('error');
+    }
+    // Auto-reset to idle after 4s
+    setTimeout(() => setOtaStatus(s => (s === 'success' || s === 'error') ? 'idle' : s), 4000);
+  };
+
+  const handleCheckUpdate = async () => {
+    setOtaStatus('checking');
+    setUpdateProgress(0);
+    try {
+      const result = await checkForOTAUpdate((progress) => {
+        setOtaStatus('downloading');
+        setUpdateProgress(progress);
+      });
+
+      if (result.status === 'UP_TO_DATE') {
+        setOtaStatus('up_to_date');
+        setTimeout(() => setOtaStatus('idle'), 3000);
+      } else if (result.status === 'ERROR') {
+        setOtaStatus('error');
+        Alert.alert('Update Failed', result.message);
+        setTimeout(() => setOtaStatus('idle'), 3000);
+      }
+      // 'UPDATED' case triggers reload via checkForOTAUpdate
+    } catch (error) {
+      setOtaStatus('error');
+      setTimeout(() => setOtaStatus('idle'), 3000);
+    }
+  };
+
   const requiredXP = getRequiredXP(level);
   const progress = getLevelProgress(level, xp);
   const rankColor = RANK_COLORS[rank] || COLORS.primary;
+
+  /** Returns the status dot color based on OTA state */
+  const getOtaDotColor = () => {
+    switch (otaStatus) {
+      case 'success': case 'up_to_date': return COLORS.success;
+      case 'error': return COLORS.danger;
+      case 'testing': case 'checking': case 'downloading': return COLORS.warning;
+      default: return COLORS.textMuted;
+    }
+  };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -318,6 +381,94 @@ export default function HunterProfileScreen({ navigation }) {
               ios_backgroundColor={COLORS.surfaceBorder}
             />
           </View>
+        </View>
+      </SystemPanel>
+
+      {/* ── System Updates Panel ─────────────────────────────────── */}
+      <SystemPanel glowColor="#6b3fa0" style={{ marginTop: SPACING.lg }}>
+        <View style={styles.statsPanelHeader}>
+          <MaterialCommunityIcons name="cloud-sync" size={18} color="#9b6fd4" />
+          <Text style={[styles.statsPanelTitle, { color: '#9b6fd4' }]}>SYSTEM UPDATES</Text>
+        </View>
+
+        {/* Status Card */}
+        <View style={styles.otaStatusCard}>
+          {/* Connection Status Row */}
+          <View style={styles.otaStatusRow}>
+            <View style={[styles.otaStatusDot, { backgroundColor: getOtaDotColor() }]} />
+            <Text style={styles.otaStatusLabel}>
+              {otaStatus === 'idle' && 'Ready to check'}
+              {otaStatus === 'testing' && 'Testing connection…'}
+              {otaStatus === 'checking' && 'Checking for updates…'}
+              {otaStatus === 'downloading' && `Downloading… ${Math.round(updateProgress * 100)}%`}
+              {otaStatus === 'success' && 'Connected'}
+              {otaStatus === 'up_to_date' && 'Up to date'}
+              {otaStatus === 'error' && 'Connection failed'}
+            </Text>
+            {otaLatency !== null && otaStatus === 'success' && (
+              <Text style={styles.otaLatencyBadge}>{otaLatency}ms</Text>
+            )}
+          </View>
+
+          {/* Progress Bar (visible during download) */}
+          {otaStatus === 'downloading' && (
+            <View style={styles.otaProgressOuter}>
+              <View style={[styles.otaProgressFill, { width: `${updateProgress * 100}%` }]} />
+            </View>
+          )}
+
+          {/* Bundle Info */}
+          <View style={styles.otaBundleInfo}>
+            <View style={styles.otaBundleItem}>
+              <Text style={styles.otaBundleKey}>VERSION</Text>
+              <Text style={styles.otaBundleVal}>{HotUpdater.getAppVersion() || '—'}</Text>
+            </View>
+            <View style={styles.otaBundleSep} />
+            <View style={styles.otaBundleItem}>
+              <Text style={styles.otaBundleKey}>BUNDLE</Text>
+              <Text style={styles.otaBundleVal} numberOfLines={1}>
+                {HotUpdater.getBundleId()?.slice(0, 8) || 'base'}
+              </Text>
+            </View>
+            <View style={styles.otaBundleSep} />
+            <View style={styles.otaBundleItem}>
+              <Text style={styles.otaBundleKey}>CHANNEL</Text>
+              <Text style={styles.otaBundleVal}>{HotUpdater.getChannel() || '—'}</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Action Buttons */}
+        <View style={styles.otaActions}>
+          <TouchableOpacity
+            style={[styles.otaBtn, styles.otaBtnSecondary]}
+            onPress={handleTestOTA}
+            disabled={otaStatus === 'testing' || otaStatus === 'checking' || otaStatus === 'downloading'}
+          >
+            <MaterialCommunityIcons
+              name={otaStatus === 'testing' ? 'loading' : 'wifi-check'}
+              size={18}
+              color={COLORS.accent}
+            />
+            <Text style={styles.otaBtnTextSecondary}>
+              {otaStatus === 'testing' ? 'Testing…' : 'Test Connection'}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.otaBtn, styles.otaBtnPrimary]}
+            onPress={handleCheckUpdate}
+            disabled={otaStatus === 'testing' || otaStatus === 'checking' || otaStatus === 'downloading'}
+          >
+            <MaterialCommunityIcons
+              name={otaStatus === 'checking' ? 'loading' : otaStatus === 'downloading' ? 'download' : 'update'}
+              size={18}
+              color="#040405"
+            />
+            <Text style={styles.otaBtnTextPrimary}>
+              {otaStatus === 'checking' ? 'Checking…' : otaStatus === 'downloading' ? 'Downloading…' : 'Check for Updates'}
+            </Text>
+          </TouchableOpacity>
         </View>
       </SystemPanel>
 
@@ -685,5 +836,122 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.xs,
     color: COLORS.textMuted,
     marginTop: SPACING.xs,
+  },
+
+  // ── System Updates Panel ──────────────────────────
+  otaStatusCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: BORDER_RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceBorder,
+    padding: SPACING.base,
+    marginBottom: SPACING.md,
+  },
+  otaStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SPACING.sm,
+  },
+  otaStatusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: SPACING.sm,
+  },
+  otaStatusLabel: {
+    flex: 1,
+    fontFamily: FONTS.bodyMedium,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+    letterSpacing: 0.5,
+  },
+  otaLatencyBadge: {
+    fontFamily: FONTS.heading,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.success,
+    backgroundColor: COLORS.successGlow,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 2,
+    borderRadius: BORDER_RADIUS.sm,
+    overflow: 'hidden',
+    letterSpacing: 0.5,
+  },
+  otaProgressOuter: {
+    height: 4,
+    backgroundColor: COLORS.surfaceBorder,
+    borderRadius: 2,
+    marginTop: SPACING.sm,
+    marginBottom: SPACING.xs,
+    overflow: 'hidden',
+  },
+  otaProgressFill: {
+    height: '100%',
+    backgroundColor: '#9b6fd4',
+    borderRadius: 2,
+  },
+  otaBundleInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: SPACING.sm,
+    paddingTop: SPACING.sm,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.surfaceBorder,
+  },
+  otaBundleItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  otaBundleKey: {
+    fontFamily: FONTS.heading,
+    fontSize: 9,
+    color: COLORS.textMuted,
+    letterSpacing: 1.5,
+    marginBottom: 2,
+  },
+  otaBundleVal: {
+    fontFamily: FONTS.bodyMedium,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textPrimary,
+  },
+  otaBundleSep: {
+    width: 1,
+    height: 24,
+    backgroundColor: COLORS.surfaceBorder,
+  },
+  otaActions: {
+    flexDirection: 'row',
+    gap: SPACING.sm,
+  },
+  otaBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.xs,
+    paddingVertical: SPACING.md,
+    borderRadius: BORDER_RADIUS.md,
+  },
+  otaBtnSecondary: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: COLORS.accent + '50',
+  },
+  otaBtnPrimary: {
+    backgroundColor: COLORS.accent,
+  },
+  otaBtnTextSecondary: {
+    fontFamily: FONTS.heading,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.accent,
+    letterSpacing: 1,
+    fontWeight: '700',
+  },
+  otaBtnTextPrimary: {
+    fontFamily: FONTS.heading,
+    fontSize: FONT_SIZES.xs,
+    color: '#040405',
+    letterSpacing: 1,
+    fontWeight: '700',
   },
 });

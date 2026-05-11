@@ -134,6 +134,14 @@ class NotificationManager {
       18, 0,
       { type: 'mental' }
     );
+
+    // 7. Walking Reminder (6:30 PM)
+    await this.scheduleDailyNotification(
+      "Walking Protocol 🚶‍♂️",
+      "A Hunter's recovery includes movement. Take a 15-minute walk today!",
+      18, 30,
+      { type: 'walking' }
+    );
     
     console.log("All system reminders scheduled.");
   }

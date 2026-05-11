@@ -1,15 +1,36 @@
+// React & React Native
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
+
+// Third-party
 import { LinearGradient } from 'expo-linear-gradient';
+import PropTypes from 'prop-types';
+
+// App config & utilities
 import { COLORS, STAT_COLORS, FONTS, FONT_SIZES, SPACING, BORDER_RADIUS } from '../theme';
+import { usePlayer } from '../store/PlayerContext';
+
+/**
+ * Animated stat progress bar with gradient fill.
+ * Width animates to the current progress value when animations are enabled.
+ * @param { string } label - Stat name (e.g. 'STR', 'AGI') used for color lookup and display
+ * @param { number } value - Current XP value within the stat
+ * @param { number } maxValue - XP required for next level (default 100)
+ * @param { string } color - Override color for the bar fill
+ * @param { bool } showLevel - Whether to show the level indicator
+ * @param { number } level - Override level number to display
+ * @param { bool } animate - Whether to animate the bar fill (further gated by global settings)
+ */
 
 const StatBar = ({ label, value, maxValue = 100, color, showLevel = true, level, animate = true }) => {
   const progress = Math.min(value / maxValue, 1);
   const animatedWidth = useRef(new Animated.Value(0)).current;
   const barColor = color || STAT_COLORS[label] || COLORS.primary;
+  const { settings } = usePlayer();
+  const shouldAnimate = animate && (settings?.animationsEnabled ?? true);
 
   useEffect(() => {
-    if (animate) {
+    if (shouldAnimate) {
       Animated.timing(animatedWidth, {
         toValue: progress,
         duration: 800,
@@ -18,7 +39,7 @@ const StatBar = ({ label, value, maxValue = 100, color, showLevel = true, level,
     } else {
       animatedWidth.setValue(progress);
     }
-  }, [progress]);
+  }, [progress, shouldAnimate]);
 
   const widthInterpolated = animatedWidth.interpolate({
     inputRange: [0, 1],
@@ -106,5 +127,23 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 });
+
+StatBar.propTypes = {
+  label: PropTypes.string.isRequired,
+  value: PropTypes.number.isRequired,
+  maxValue: PropTypes.number,
+  color: PropTypes.string,
+  showLevel: PropTypes.bool,
+  level: PropTypes.number,
+  animate: PropTypes.bool,
+};
+
+StatBar.defaultProps = {
+  maxValue: 100,
+  color: null,
+  showLevel: true,
+  level: null,
+  animate: true,
+};
 
 export default StatBar;
