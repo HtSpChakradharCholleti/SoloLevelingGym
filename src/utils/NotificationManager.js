@@ -4,13 +4,17 @@ import { Platform } from 'react-native';
 // Only set the handler when needed or inside an init function to avoid top-level triggers
 export const initNotifications = () => {
   Notifications.setNotificationHandler({
-    // Allow test notifications through in foreground; suppress all others.
+    // Allow test and rest-complete notifications through in foreground;
+    // suppress all others.
     handleNotification: async (notification) => {
-      const isTest = notification?.request?.content?.data?.isTest === true;
+      const data = notification?.request?.content?.data;
+      const isTest = data?.isTest === true;
+      const isRest = data?.isRest === true;
+      const shouldShow = isTest || isRest;
       return {
-        shouldShowBanner: isTest,
-        shouldShowList: isTest,
-        shouldPlaySound: isTest,
+        shouldShowBanner: shouldShow,
+        shouldShowList: shouldShow,
+        shouldPlaySound: shouldShow,
         shouldSetBadge: false,
       };
     },
@@ -206,6 +210,45 @@ class NotificationManager {
       }
     } catch (e) {
       console.warn('Failed to cancel timer notification', e);
+    }
+  }
+
+  static async scheduleRestNotification(seconds) {
+    try {
+      // Cancel any existing rest notification first
+      await this.cancelRestNotification();
+      const id = await Notifications.scheduleNotificationAsync({
+        content: {
+          title: 'Rest Over! ⏱️',
+          body: 'Time to lift again, Hunter! Get back in there.',
+          sound: Platform.OS === 'ios' ? 'notif.wav' : 'notif',
+          data: { isRest: true },
+          android: {
+            channelId: 'system_alerts',
+          },
+        },
+        trigger: {
+          type: 'timeInterval',
+          seconds: Math.max(1, Math.floor(seconds)),
+          repeats: false,
+          channelId: 'system_alerts',
+        },
+      });
+      this._restNotifId = id;
+      return id;
+    } catch (e) {
+      console.warn('Failed to schedule rest notification', e);
+    }
+  }
+
+  static async cancelRestNotification() {
+    try {
+      if (this._restNotifId) {
+        await Notifications.cancelScheduledNotificationAsync(this._restNotifId);
+        this._restNotifId = null;
+      }
+    } catch (e) {
+      console.warn('Failed to cancel rest notification', e);
     }
   }
 

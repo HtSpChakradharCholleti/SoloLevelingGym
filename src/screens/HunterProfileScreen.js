@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, ScrollView, StyleSheet, Dimensions, TouchableOpacity, Alert, Switch } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -19,6 +19,7 @@ export default function HunterProfileScreen({ navigation }) {
   const {
     playerName, level, xp, rank, stats,
     totalWorkouts, currentStreak, bestStreak, weightHistory, measurementsHistory,
+    workoutHistory,
     settings, updateSetting,
   } = usePlayer();
 
@@ -78,6 +79,34 @@ export default function HunterProfileScreen({ navigation }) {
   const requiredXP = getRequiredXP(level);
   const progress = getLevelProgress(level, xp);
   const rankColor = RANK_COLORS[rank] || COLORS.primary;
+
+  // ── Workout time stats ──────────────────────────────────────────────────
+  const { todayTimeStr, avgTimeStr } = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
+    const history = workoutHistory || [];
+
+    // Today's total duration (ms)
+    const todayMs = history
+      .filter(w => w.date === today)
+      .reduce((sum, w) => sum + (w.duration || 0), 0);
+
+    // Average duration across all workout entries
+    const totalMs = history.reduce((sum, w) => sum + (w.duration || 0), 0);
+    const avgMs = history.length > 0 ? totalMs / history.length : 0;
+
+    const fmtDur = (ms) => {
+      const mins = Math.round(ms / 60000);
+      if (mins === 0) return '0m';
+      if (mins < 60) return `${mins}m`;
+      const h = Math.floor(mins / 60);
+      return `${h}h ${mins % 60}m`;
+    };
+
+    return {
+      todayTimeStr: fmtDur(todayMs),
+      avgTimeStr: fmtDur(avgMs),
+    };
+  }, [workoutHistory]);
 
   /** Returns the status dot color based on OTA state */
   const getOtaDotColor = () => {
@@ -184,6 +213,25 @@ export default function HunterProfileScreen({ navigation }) {
           <Text style={styles.quickStatLabel}>Best Streak</Text>
         </View>
       </View>
+
+      {/* Workout Time Stats */}
+      <SystemPanel glowColor={COLORS.success} style={{ marginHorizontal: SPACING.base, marginBottom: SPACING.base }}>
+        <View style={styles.statsPanelHeader}>
+          <MaterialCommunityIcons name="clock-outline" size={18} color={COLORS.success} />
+          <Text style={[styles.statsPanelTitle, { color: COLORS.success }]}>WORKOUT TIME</Text>
+        </View>
+        <View style={styles.workoutTimeRow}>
+          <View style={styles.workoutTimeStat}>
+            <Text style={styles.workoutTimeValue}>{todayTimeStr}</Text>
+            <Text style={styles.workoutTimeLabel}>Today</Text>
+          </View>
+          <View style={styles.workoutTimeDivider} />
+          <View style={styles.workoutTimeStat}>
+            <Text style={styles.workoutTimeValue}>{avgTimeStr}</Text>
+            <Text style={styles.workoutTimeLabel}>Average</Text>
+          </View>
+        </View>
+      </SystemPanel>
 
       {/* Daily Weight Tracker */}
       <SystemPanel glowColor={COLORS.accent} style={{ marginBottom: SPACING.base }}>
@@ -655,6 +703,41 @@ const styles = StyleSheet.create({
     width: 1,
     height: 30,
     backgroundColor: COLORS.surfaceBorder,
+  },
+
+  // Workout Time Stats
+  workoutTimeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    backgroundColor: COLORS.surface,
+    borderRadius: BORDER_RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceBorder,
+    paddingVertical: SPACING.base,
+    paddingHorizontal: SPACING.lg,
+  },
+  workoutTimeStat: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  workoutTimeValue: {
+    fontFamily: FONTS.heading,
+    fontSize: FONT_SIZES.xl,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+  },
+  workoutTimeLabel: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textSecondary,
+    marginTop: SPACING.xs,
+  },
+  workoutTimeDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: COLORS.surfaceBorder,
+    marginHorizontal: SPACING.md,
   },
   statsPanelHeader: {
     flexDirection: 'row',

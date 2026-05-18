@@ -6,12 +6,44 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useKeepAwake } from 'expo-keep-awake';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  useAnimatedReaction,
+  runOnJS,
+} from 'react-native-reanimated';
 import { COLORS, STAT_COLORS, FONTS, FONT_SIZES, SPACING, BORDER_RADIUS } from '../theme';
 import { usePlayer } from '../store/PlayerContext';
 import { EXERCISES, DUNGEONS } from '../data/exercises';
 import SystemPanel from '../components/SystemPanel';
 import XPToast from '../components/XPToast';
 import SoundManager from '../utils/SoundManager';
+import NotificationManager from '../utils/NotificationManager';
+
+// ─── Animated Timer Display ───────────────────────────────────────────────────
+// Renders a formatted MM:SS string from a Reanimated shared value.
+// Uses useAnimatedReaction to push value changes to the JS thread for
+// minimal React re-renders, keeping the timer jank-free during scrolls.
+function AnimatedTimerDisplay({ sharedValue, style }) {
+  const [display, setDisplay] = useState('00:00');
+
+  const updateDisplay = useCallback((seconds) => {
+    const s = Math.max(0, Math.round(seconds));
+    const mins = Math.floor(s / 60);
+    const secs = s % 60;
+    setDisplay(`${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`);
+  }, []);
+
+  useAnimatedReaction(
+    () => sharedValue.value,
+    (current) => {
+      runOnJS(updateDisplay)(current);
+    },
+    [sharedValue]
+  );
+
+  return <Text style={style}>{display}</Text>;
+}
 
 // ─── Inline ExerciseRow with remove button ────────────────────────────────────
 function ExerciseRow({ exercise, completedSets = [], totalSets, onCompleteSet, onRemove, index }) {
@@ -369,44 +401,58 @@ export default function WorkoutScreen({ navigation }) {
   } = usePlayer();
 
   useKeepAwake();
-  const [elapsed, setElapsed] = useState(0);
   const [toasts, setToasts] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [restTimeRemaining, setRestTimeRemaining] = useState(0);
   const [restDuration, setRestDuration] = useState(180); // 3 minutes default
   const [restRestartKey, setRestRestartKey] = useState(0);
+  const [isResting, setIsResting] = useState(false); // JS-side flag for conditional rendering
   const timerRef = useRef(null);
   const restTimerRef = useRef(null);
   const restEndTimeRef = useRef(null);
 
+  // Shared values — written from JS interval, read on UI thread for jank-free display
+  const elapsedShared = useSharedValue(0);
+  const restRemainingShared = useSharedValue(0);
+
+  // Elapsed timer — writes to shared value instead of React state
   useEffect(() => {
     if (activeWorkout) {
       timerRef.current = setInterval(() => {
-        setElapsed(Math.floor((Date.now() - activeWorkout.startTime) / 1000));
+        elapsedShared.value = Math.floor((Date.now() - activeWorkout.startTime) / 1000);
       }, 1000);
     }
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [activeWorkout]);
 
-  // Rest timer — wall-clock based for accuracy across bg/fg transitions
-  // restRestartKey forces re-init even when restTimeRemaining value doesn't change
+  // Rest timer — wall-clock based, writes to shared value for UI-thread rendering.
+  // restRestartKey forces re-init even when the duration value doesn't change.
   useEffect(() => {
-    if (restTimeRemaining > 0) {
-      restEndTimeRef.current = Date.now() + restTimeRemaining * 1000;
-      restTimerRef.current = setInterval(() => {
-        const remaining = Math.max(
-          0,
-          Math.ceil((restEndTimeRef.current - Date.now()) / 1000)
-        );
-        setRestTimeRemaining(remaining);
-        if (remaining <= 0) {
-          clearInterval(restTimerRef.current);
-          restTimerRef.current = null;
-          restEndTimeRef.current = null;
-          SoundManager.playTimerComplete();
-        }
-      }, 250);
-    }
+    if (restRestartKey === 0) return; // initial mount — no rest yet
+
+    const duration = restDuration;
+    restEndTimeRef.current = Date.now() + duration * 1000;
+    restRemainingShared.value = duration;
+    setIsResting(true);
+
+    // Schedule push notification for when rest ends (background support)
+    NotificationManager.scheduleRestNotification(duration);
+
+    restTimerRef.current = setInterval(() => {
+      const remaining = Math.max(
+        0,
+        Math.ceil((restEndTimeRef.current - Date.now()) / 1000)
+      );
+      restRemainingShared.value = remaining;
+      if (remaining <= 0) {
+        clearInterval(restTimerRef.current);
+        restTimerRef.current = null;
+        restEndTimeRef.current = null;
+        setIsResting(false);
+        SoundManager.playTimerComplete();
+        NotificationManager.cancelRestNotification();
+      }
+    }, 250);
+
     return () => {
       if (restTimerRef.current) {
         clearInterval(restTimerRef.current);
@@ -415,9 +461,16 @@ export default function WorkoutScreen({ navigation }) {
     };
   }, [restRestartKey]);
 
+  // Animated style for rest progress bar — driven by shared value on UI thread
+  const restProgressStyle = useAnimatedStyle(() => {
+    const progress = restDuration > 0 ? restRemainingShared.value / restDuration : 0;
+    return { width: `${progress * 100}%` };
+  });
+
   const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
+    const s = Math.max(0, Math.round(seconds));
+    const mins = Math.floor(s / 60);
+    const secs = s % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
@@ -435,7 +488,7 @@ export default function WorkoutScreen({ navigation }) {
       restTimerRef.current = null;
     }
     restEndTimeRef.current = null;
-    setRestTimeRemaining(restDuration);
+    restRemainingShared.value = restDuration;
     setRestRestartKey(k => k + 1);
   }, [activeWorkout, completeExerciseSet, restDuration]);
 
@@ -464,6 +517,15 @@ export default function WorkoutScreen({ navigation }) {
       Alert.alert('No Exercises Completed', 'Complete at least one set before finishing.');
       return;
     }
+    // Clean up rest timer and notification
+    if (restTimerRef.current) {
+      clearInterval(restTimerRef.current);
+      restTimerRef.current = null;
+    }
+    restEndTimeRef.current = null;
+    restRemainingShared.value = 0;
+    setIsResting(false);
+    NotificationManager.cancelRestNotification();
     finishWorkout();
     navigation.navigate('Profile');
   };
@@ -476,7 +538,19 @@ export default function WorkoutScreen({ navigation }) {
         { text: 'Keep Going', style: 'cancel' },
         {
           text: 'Abandon', style: 'destructive',
-          onPress: () => { cancelWorkout(); navigation.navigate('Dungeons'); },
+          onPress: () => {
+            // Clean up rest timer and notification
+            if (restTimerRef.current) {
+              clearInterval(restTimerRef.current);
+              restTimerRef.current = null;
+            }
+            restEndTimeRef.current = null;
+            restRemainingShared.value = 0;
+            setIsResting(false);
+            NotificationManager.cancelRestNotification();
+            cancelWorkout();
+            navigation.navigate('Dungeons');
+          },
         },
       ]
     );
@@ -520,7 +594,7 @@ export default function WorkoutScreen({ navigation }) {
           <View style={styles.timerSection}>
             <View style={styles.timerArea}>
               <Text style={styles.timerLabel}>DUNGEON TIME</Text>
-              <Text style={styles.timerValue}>{formatTime(elapsed)}</Text>
+              <AnimatedTimerDisplay sharedValue={elapsedShared} style={styles.timerValue} />
             </View>
             <View style={styles.xpArea}>
               <Text style={styles.xpLabel}>XP EARNED</Text>
@@ -547,11 +621,14 @@ export default function WorkoutScreen({ navigation }) {
         </SystemPanel>
 
         {/* Rest Timer */}
-        {restTimeRemaining > 0 && (
+        {isResting && (
           <View style={styles.restTimerBar}>
             <View style={styles.restTimerContent}>
               <MaterialCommunityIcons name="timer-sand" size={18} color={COLORS.accent} />
-              <Text style={styles.restTimerText}>REST  {formatTime(restTimeRemaining)}</Text>
+              <View style={styles.restTimerTextRow}>
+                <Text style={styles.restTimerLabel}>REST  </Text>
+                <AnimatedTimerDisplay sharedValue={restRemainingShared} style={styles.restTimerText} />
+              </View>
               <TouchableOpacity
                 onPress={() => {
                   if (restTimerRef.current) {
@@ -559,7 +636,9 @@ export default function WorkoutScreen({ navigation }) {
                     restTimerRef.current = null;
                   }
                   restEndTimeRef.current = null;
-                  setRestTimeRemaining(0);
+                  restRemainingShared.value = 0;
+                  setIsResting(false);
+                  NotificationManager.cancelRestNotification();
                 }}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
@@ -567,10 +646,10 @@ export default function WorkoutScreen({ navigation }) {
               </TouchableOpacity>
             </View>
             <View style={styles.restProgressOuter}>
-              <View
+              <Animated.View
                 style={[
                   styles.restProgressFill,
-                  { width: `${(restTimeRemaining / restDuration) * 100}%` },
+                  restProgressStyle,
                 ]}
               />
             </View>
@@ -833,14 +912,25 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: SPACING.sm,
   },
+  restTimerTextRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginLeft: SPACING.sm,
+  },
+  restTimerLabel: {
+    fontFamily: FONTS.heading,
+    fontSize: FONT_SIZES.lg,
+    fontWeight: '700',
+    color: COLORS.accent,
+    letterSpacing: 1,
+  },
   restTimerText: {
     fontFamily: FONTS.heading,
     fontSize: FONT_SIZES.lg,
     fontWeight: '700',
     color: COLORS.accent,
     letterSpacing: 1,
-    flex: 1,
-    marginLeft: SPACING.sm,
   },
   restSkipText: {
     fontFamily: FONTS.heading,

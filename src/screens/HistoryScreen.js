@@ -260,6 +260,246 @@ XPBarChart.propTypes = {
   ).isRequired,
 };
 
+// ─── Workout Time Per-Day Bar Chart ───────────────────────────────────────────
+const TIME_CHART_HEIGHT = 120;
+
+/**
+ * SVG bar chart showing workout duration per day for the last 14 days.
+ * Green gradient bars; today is highlighted in gold.
+ * @param { Array<{ date: string, duration: number }> } workoutHistory - Entries with date and duration (ms)
+ */
+function WorkoutTimeChart({ workoutHistory }) {
+  const { dailyData, maxMinutes, totalMinutes } = useMemo(() => {
+    const map = {};
+    workoutHistory.forEach(w => {
+      const mins = Math.round((w.duration || 0) / 60000);
+      map[w.date] = (map[w.date] || 0) + mins;
+    });
+
+    const days = [];
+    const today = new Date();
+    for (let i = CHART_DAYS - 1; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().split('T')[0];
+      const dayLabel = d.toLocaleDateString('en-US', { weekday: 'narrow' });
+      const mins = map[dateStr] || 0;
+      days.push({ dateStr, dayLabel, mins, isToday: i === 0 });
+    }
+
+    const max = Math.max(...days.map(d => d.mins), 1);
+    const total = days.reduce((s, d) => s + d.mins, 0);
+    return { dailyData: days, maxMinutes: max, totalMinutes: total };
+  }, [workoutHistory]);
+
+  if (workoutHistory.length === 0) return null;
+
+  const activeDays = dailyData.filter(d => d.mins > 0).length;
+  const avgMinutes = activeDays > 0 ? Math.round(totalMinutes / activeDays) : 0;
+
+  const formatDur = (mins) => {
+    if (mins < 60) return `${mins}m`;
+    const h = Math.floor(mins / 60);
+    return `${h}h ${mins % 60}m`;
+  };
+
+  const SVG_WIDTH = 300;
+  const barGap = 3;
+  const barWidth = (SVG_WIDTH - barGap * (CHART_DAYS - 1)) / CHART_DAYS;
+  const minBarHeight = 3;
+
+  return (
+    <View style={timeChartStyles.container}>
+      {/* Header */}
+      <View style={timeChartStyles.headerRow}>
+        <View style={timeChartStyles.headerLeft}>
+          <MaterialCommunityIcons name="clock-outline" size={14} color={COLORS.success} />
+          <Text style={timeChartStyles.title}>WORKOUT TIME</Text>
+        </View>
+        <View style={timeChartStyles.headerRight}>
+          <Text style={timeChartStyles.avgLabel}>AVG </Text>
+          <Text style={timeChartStyles.avgValue}>{formatDur(avgMinutes)}</Text>
+        </View>
+      </View>
+
+      {/* SVG Bar Chart */}
+      <View style={timeChartStyles.svgWrap}>
+        <Svg
+          width="100%"
+          height={TIME_CHART_HEIGHT}
+          viewBox={`0 0 ${SVG_WIDTH} ${TIME_CHART_HEIGHT}`}
+          preserveAspectRatio="none"
+        >
+          <Defs>
+            <SvgGradient id="timeBarGrad" x1="0" y1="0" x2="0" y2="1">
+              <Stop offset="0%" stopColor={COLORS.success} stopOpacity="1" />
+              <Stop offset="100%" stopColor="#065f46" stopOpacity="0.7" />
+            </SvgGradient>
+            <SvgGradient id="timeBarGradToday" x1="0" y1="0" x2="0" y2="1">
+              <Stop offset="0%" stopColor={COLORS.accent} stopOpacity="1" />
+              <Stop offset="100%" stopColor={COLORS.accentDark} stopOpacity="0.8" />
+            </SvgGradient>
+          </Defs>
+
+          {dailyData.map((day, i) => {
+            const barH = day.mins > 0
+              ? Math.max((day.mins / maxMinutes) * (TIME_CHART_HEIGHT - 20), minBarHeight)
+              : minBarHeight;
+            const x = i * (barWidth + barGap);
+            const y = TIME_CHART_HEIGHT - barH;
+
+            return (
+              <React.Fragment key={day.dateStr}>
+                <Rect
+                  x={x}
+                  y={y}
+                  width={barWidth}
+                  height={barH}
+                  rx={BAR_RADIUS}
+                  ry={BAR_RADIUS}
+                  fill={day.isToday ? 'url(#timeBarGradToday)' : (day.mins > 0 ? 'url(#timeBarGrad)' : COLORS.surfaceLight)}
+                  opacity={day.mins > 0 ? 1 : 0.4}
+                />
+                {day.mins > 0 && (
+                  <SvgText
+                    x={x + barWidth / 2}
+                    y={y - 3}
+                    fontSize="8"
+                    fill={COLORS.textMuted}
+                    textAnchor="middle"
+                    fontFamily="Outfit_400Regular"
+                  >
+                    {formatDur(day.mins)}
+                  </SvgText>
+                )}
+              </React.Fragment>
+            );
+          })}
+        </Svg>
+      </View>
+
+      {/* Day labels */}
+      <View style={timeChartStyles.dayLabelsRow}>
+        {dailyData.map((day, i) => (
+          <Text
+            key={i}
+            style={[
+              timeChartStyles.dayLabel,
+              day.isToday && timeChartStyles.dayLabelToday,
+            ]}
+          >
+            {day.dayLabel}
+          </Text>
+        ))}
+      </View>
+
+      {/* Footer summary */}
+      <View style={timeChartStyles.footerRow}>
+        <Text style={timeChartStyles.footerLabel}>Last {CHART_DAYS} days</Text>
+        <Text style={timeChartStyles.footerValue}>
+          {formatDur(totalMinutes)} <Text style={timeChartStyles.footerUnit}>total</Text>
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+const timeChartStyles = StyleSheet.create({
+  container: {
+    backgroundColor: COLORS.surface,
+    borderRadius: BORDER_RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceBorder,
+    padding: SPACING.md,
+    marginBottom: SPACING.lg,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING.md,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+  },
+  title: {
+    fontFamily: FONTS.heading,
+    fontSize: FONT_SIZES.xs,
+    fontWeight: '700',
+    color: COLORS.textSecondary,
+    letterSpacing: 2,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
+  avgLabel: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textMuted,
+  },
+  avgValue: {
+    fontFamily: FONTS.heading,
+    fontSize: FONT_SIZES.sm,
+    fontWeight: '700',
+    color: COLORS.success,
+  },
+  svgWrap: {
+    height: TIME_CHART_HEIGHT,
+  },
+  dayLabelsRow: {
+    flexDirection: 'row',
+    marginTop: SPACING.xs,
+  },
+  dayLabel: {
+    flex: 1,
+    textAlign: 'center',
+    fontFamily: FONTS.body,
+    fontSize: 9,
+    color: COLORS.textMuted,
+  },
+  dayLabelToday: {
+    color: COLORS.accent,
+    fontWeight: '700',
+  },
+  footerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: SPACING.sm,
+    paddingTop: SPACING.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: COLORS.surfaceBorder,
+  },
+  footerLabel: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textMuted,
+  },
+  footerValue: {
+    fontFamily: FONTS.heading,
+    fontSize: FONT_SIZES.md,
+    fontWeight: '700',
+    color: COLORS.success,
+  },
+  footerUnit: {
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textMuted,
+    fontWeight: '400',
+  },
+});
+
+WorkoutTimeChart.propTypes = {
+  workoutHistory: PropTypes.arrayOf(
+    PropTypes.shape({
+      date: PropTypes.string.isRequired,
+      duration: PropTypes.number,
+    })
+  ).isRequired,
+};
+
 // ─── Main HistoryScreen ───────────────────────────────────────────────────────
 
 /**
@@ -367,6 +607,9 @@ export default function HistoryScreen() {
 
       {/* XP Per Day Chart */}
       <XPBarChart workoutHistory={workoutHistory} />
+
+      {/* Workout Time Per Day Chart */}
+      <WorkoutTimeChart workoutHistory={workoutHistory} />
 
       {/* History List */}
       {workoutHistory.length === 0 ? (
