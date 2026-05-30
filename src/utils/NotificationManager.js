@@ -184,6 +184,7 @@ class NotificationManager {
           title: `⏱️ ${label} Complete!`,
           body: 'Time is up! Tap to return to your session.',
           sound: Platform.OS === 'ios' ? 'notif.wav' : 'notif',
+          data: { screen: label === 'Stretch' ? 'Stretching' : 'Workout' },
           android: {
             channelId: 'system_alerts',
           },
@@ -222,7 +223,7 @@ class NotificationManager {
           title: 'Rest Over! ⏱️',
           body: 'Time to lift again, Hunter! Get back in there.',
           sound: Platform.OS === 'ios' ? 'notif.wav' : 'notif',
-          data: { isRest: true },
+          data: { isRest: true, screen: 'Workout' },
           android: {
             channelId: 'system_alerts',
           },
