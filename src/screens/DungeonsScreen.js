@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { View, Text, ScrollView, FlatList, StyleSheet, TouchableOpacity, Modal } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { COLORS, STAT_COLORS, RANK_COLORS, FONTS, FONT_SIZES, SPACING, BORDER_RADIUS } from '../theme';
+import { COLORS, STAT_COLORS, RANK_COLORS, FONTS, FONT_SIZES, SPACING, BORDER_RADIUS, LETTER_SPACING, LINE_HEIGHTS } from '../theme';
 import { DUNGEONS, getExercisesForDungeon } from '../data/exercises';
 import { usePlayer } from '../store/PlayerContext';
 import { getWorkoutSuggestion } from '../utils/suggestions';
@@ -160,6 +160,12 @@ export default function DungeonsScreen({ navigation }) {
         onRequestClose={closeDungeon}
       >
         <View style={styles.modalOverlay}>
+          {/* Gradient overlay — darker at bottom where modal sits, transparent at top */}
+          <LinearGradient
+            colors={['rgba(0,0,0,0.2)', 'rgba(0,0,0,0.6)', 'rgba(0,0,0,0.88)']}
+            locations={[0, 0.5, 1]}
+            style={StyleSheet.absoluteFillObject}
+          />
           <View style={styles.modalContainer}>
             {selectedDungeon && (
               <>
@@ -234,9 +240,13 @@ export default function DungeonsScreen({ navigation }) {
                 {/* Start Workout Button */}
                 <View style={styles.modalFooter}>
                   <TouchableOpacity
-                    style={styles.startButton}
+                    style={[
+                      styles.startButton,
+                      selectedExercises.filter(e => e.selected).length === 0 && styles.startButtonDisabled,
+                    ]}
                     onPress={handleStartWorkout}
                     activeOpacity={0.8}
+                    disabled={selectedExercises.filter(e => e.selected).length === 0}
                   >
                     <LinearGradient
                       colors={[COLORS.primaryDark, COLORS.primary]}
@@ -280,7 +290,8 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.xl,
     fontWeight: '700',
     color: COLORS.accent,
-    letterSpacing: 3,
+    letterSpacing: LETTER_SPACING.tight,
+    lineHeight: FONT_SIZES.xl * LINE_HEIGHTS.heading,
   },
   headerSub: {
     fontFamily: FONTS.body,
@@ -291,12 +302,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    marginTop: SPACING.base,
+    marginTop: SPACING.sectionGap,
   },
   // Modal
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
     justifyContent: 'flex-end',
   },
   modalContainer: {
@@ -323,6 +333,8 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.xxl,
     fontWeight: '700',
     color: COLORS.textPrimary,
+    letterSpacing: LETTER_SPACING.tight,
+    lineHeight: FONT_SIZES.xxl * LINE_HEIGHTS.heading,
   },
   modalSubtitle: {
     fontFamily: FONTS.body,
@@ -421,6 +433,9 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },
     elevation: 8,
+  },
+  startButtonDisabled: {
+    opacity: 0.4,
   },
   startButtonGradient: {
     flexDirection: 'row',

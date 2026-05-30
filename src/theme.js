@@ -22,13 +22,15 @@ export const COLORS = {
   textSecondary: '#a1a1aa',
   textMuted: '#52525b',
 
-  // Status
-  success: '#10b981',
+  // Status — semantic colors with purpose
+  success: '#10b981',     // Green  — positive feedback, completion
   successGlow: 'rgba(16, 185, 129, 0.15)',
-  danger: '#ef4444',
+  danger: '#ef4444',      // Red    — urgency, errors, destructive actions
   dangerGlow: 'rgba(239, 68, 68, 0.15)',
-  warning: '#fadd60',
+  warning: '#fadd60',     // Yellow — caution, penalties, alerts
   warningGlow: 'rgba(250, 221, 96, 0.15)',
+  info: '#3b82f6',        // Blue   — trust, informational, neutral actions
+  infoGlow: 'rgba(59, 130, 246, 0.15)',
 
   // Stat Colors - Consolidated to System Silver/Blue
   statSTR: '#94a3b8',
@@ -104,6 +106,33 @@ export const FONT_SIZES = {
   giant: 48,
 };
 
+// Line height multipliers — headings: 110%-120%, body: 140%-160%
+export const LINE_HEIGHTS = {
+  heading: 1.12,  // 110-120% for display/header text (tighter, more aesthetic)
+  subheading: 1.2,
+  body: 1.5,      // 150% for readable body text
+  relaxed: 1.6,
+};
+
+// Letter spacing — negative for headings (-2% to -3%), positive for labels
+export const LETTER_SPACING = {
+  tight: -0.5,    // ~-2% at 22px — for main display headings
+  snug: -0.3,     // ~-2% at 14-16px — for subheadings
+  normal: 0,
+  wide: 1,        // for small caps / stat labels
+  wider: 2,       // for badge labels
+  widest: 3,      // for decorative caps
+};
+
+// Icon sizes keyed to line heights — use alongside text so icon matches text cap height
+export const ICON_SIZES = {
+  sm: 16,   // beside FONT_SIZES.sm body text (line height ~18)
+  md: 20,   // beside FONT_SIZES.base body text (line height ~22)
+  lg: 24,   // beside FONT_SIZES.lg/xl headers (line height ~24-26)
+  xl: 28,   // beside FONT_SIZES.xxl display text
+};
+
+// 4-point grid spacing system — all values are multiples of 4
 export const SPACING = {
   xs: 4,
   sm: 8,
@@ -113,6 +142,7 @@ export const SPACING = {
   xl: 24,
   xxl: 32,
   xxxl: 40,
+  sectionGap: 32,  // Consistent 32px between major screen sections
 };
 
 export const BORDER_RADIUS = {
@@ -123,7 +153,33 @@ export const BORDER_RADIUS = {
   round: 100,
 };
 
+// Shadow hierarchy — card < soft < popover
+// Cards: subtle depth. Soft: elevated panels. Popover: top-layer elements (modals, toasts).
 export const SHADOWS = {
+  // Card-level: gentle depth for list items and surface cards
+  card: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  // Panel-level: for elevated system panels, slightly more depth
+  soft: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  // Popover-level: reserved for modals, drawers, overlays that sit above everything
+  popover: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.45,
+    shadowRadius: 32,
+    elevation: 16,
+  },
   glow: (color = COLORS.primary, intensity = 0.15) => ({
     shadowColor: color,
     shadowOffset: { width: 0, height: 4 },
@@ -131,13 +187,6 @@ export const SHADOWS = {
     shadowRadius: 16,
     elevation: 4,
   }),
-  soft: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.5,
-    shadowRadius: 24,
-    elevation: 10,
-  },
   inner: { // Simulated inner bevel for neumorphism
     borderTopWidth: 1,
     borderTopColor: 'rgba(255,255,255,0.05)',

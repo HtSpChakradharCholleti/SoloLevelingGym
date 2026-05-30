@@ -9,7 +9,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import PropTypes from 'prop-types';
 
 // App config & utilities
-import { COLORS, RANK_COLORS, STAT_COLORS, FONTS, FONT_SIZES, SPACING, BORDER_RADIUS, SHADOWS } from '../theme';
+import { COLORS, RANK_COLORS, STAT_COLORS, FONTS, FONT_SIZES, SPACING, BORDER_RADIUS, SHADOWS, LETTER_SPACING, LINE_HEIGHTS } from '../theme';
 import { getExercisesForDungeon } from '../data/exercises';
 import { usePlayer } from '../store/PlayerContext';
 
@@ -58,7 +58,7 @@ const DungeonCard = ({ dungeon, onPress, index = 0 }) => {
       entering={animationsEnabled ? FadeInUp.delay(index * 100).duration(600) : undefined}
       style={styles.wrapper}
     >
-      <Animated.View style={[styles.container, SHADOWS.soft, animatedStyle]}>
+      <Animated.View style={[styles.container, SHADOWS.card, animatedStyle]}>
         <Pressable
           onPress={() => onPress(dungeon)}
           onPressIn={() => scale.value = withTiming(0.97, { duration: 150 })}
@@ -133,7 +133,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center', 
     marginBottom: SPACING.sm 
   },
-  name: { fontFamily: FONTS.heading, fontSize: FONT_SIZES.base, fontWeight: '700', color: COLORS.textPrimary, textAlign: 'center', marginBottom: 4 },
+  name: {
+    fontFamily: FONTS.heading,
+    fontSize: FONT_SIZES.base,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    textAlign: 'center',
+    marginBottom: 4,
+    letterSpacing: LETTER_SPACING.tight,
+    lineHeight: FONT_SIZES.base * LINE_HEIGHTS.heading,
+  },
   subtitle: { fontFamily: FONTS.body, fontSize: FONT_SIZES.xs, color: COLORS.textMuted, textAlign: 'center', marginBottom: SPACING.md, lineHeight: 16 },
   splitBadge: { borderWidth: 1, borderRadius: BORDER_RADIUS.sm, paddingHorizontal: SPACING.sm, paddingVertical: 2, marginBottom: SPACING.xs },
   splitLabel: { fontFamily: FONTS.heading, fontSize: FONT_SIZES.xs - 1, fontWeight: '700', letterSpacing: 1.5 },

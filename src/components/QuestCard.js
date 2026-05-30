@@ -8,7 +8,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import PropTypes from 'prop-types';
 
 // App config & utilities
-import { COLORS, STAT_COLORS, FONTS, FONT_SIZES, SPACING, BORDER_RADIUS, SHADOWS } from '../theme';
+import { COLORS, STAT_COLORS, FONTS, FONT_SIZES, SPACING, BORDER_RADIUS, SHADOWS, LETTER_SPACING, LINE_HEIGHTS } from '../theme';
 import { usePlayer } from '../store/PlayerContext';
 
 /**
@@ -50,17 +50,24 @@ const QuestCard = ({ quest, onComplete, index = 0 }) => {
       layout={animationsEnabled ? Layout.duration(400) : undefined}
       style={styles.wrapper}
     >
-      <Animated.View style={[styles.container, SHADOWS.soft, quest.completed && styles.completed, animatedStyle]}>
+      <Animated.View style={[styles.container, SHADOWS.card, quest.completed && styles.completed, animatedStyle]}>
         <Pressable
-          onPress={() => !quest.completed && onComplete(quest)}
+          onPress={() => {
+            if (quest.completed) return;
+            // Spring pop micro-interaction — immediate visual confirmation of the action
+            scale.value = withSpring(1.04, { damping: 6, stiffness: 300 }, () => {
+              scale.value = withSpring(1, { damping: 10, stiffness: 200 });
+            });
+            onComplete(quest);
+          }}
           onPressIn={() => !quest.completed && (scale.value = withTiming(0.98, { duration: 100 }))}
-          onPressOut={() => scale.value = withTiming(1, { duration: 100 })}
+          onPressOut={() => {}}
           disabled={quest.completed}
         >
           <View style={[styles.inner, SHADOWS.inner]}>
             <View style={styles.checkboxArea}>
               <View style={[styles.checkbox, quest.completed && { backgroundColor: statColor, borderColor: statColor }]}>
-                {quest.completed && <MaterialCommunityIcons name="check" size={14} color={COLORS.background} />}
+                {quest.completed && <MaterialCommunityIcons name="check" size={16} color={COLORS.background} />}
               </View>
             </View>
             <View style={styles.content}>
@@ -98,9 +105,26 @@ const styles = StyleSheet.create({
   inner: { flexDirection: 'row', alignItems: 'center', padding: SPACING.md, borderRadius: BORDER_RADIUS.md },
   completed: { opacity: 0.5 },
   checkboxArea: { marginRight: SPACING.md },
-  checkbox: { width: 20, height: 20, borderRadius: BORDER_RADIUS.sm, borderWidth: 1.5, borderColor: COLORS.textMuted, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.surfaceLight },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: BORDER_RADIUS.sm,
+    borderWidth: 1.5,
+    borderColor: COLORS.textMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.surfaceLight,
+  },
   content: { flex: 1 },
-  questText: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: COLORS.textPrimary, fontWeight: '500', marginBottom: SPACING.xs },
+  questText: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.textPrimary,
+    fontWeight: '500',
+    marginBottom: SPACING.xs,
+    letterSpacing: LETTER_SPACING.snug,
+    lineHeight: FONT_SIZES.md * LINE_HEIGHTS.body,
+  },
   questTextCompleted: { textDecorationLine: 'line-through', color: COLORS.textMuted },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
   statTag: { flexDirection: 'row', alignItems: 'center', gap: 4 },

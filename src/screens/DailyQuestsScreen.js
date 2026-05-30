@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { COLORS, FONTS, FONT_SIZES, SPACING, BORDER_RADIUS } from '../theme';
+import { COLORS, FONTS, FONT_SIZES, SPACING, BORDER_RADIUS, LETTER_SPACING, LINE_HEIGHTS } from '../theme';
 import { usePlayer } from '../store/PlayerContext';
 import SystemPanel from '../components/SystemPanel';
 import QuestCard from '../components/QuestCard';
@@ -139,7 +139,8 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.xl,
     fontWeight: '700',
     color: COLORS.primary,
-    letterSpacing: 3,
+    letterSpacing: LETTER_SPACING.tight,
+    lineHeight: FONT_SIZES.xl * LINE_HEIGHTS.heading,
   },
   warningBox: {
     flexDirection: 'row',
@@ -191,7 +192,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   questsSection: {
-    marginTop: SPACING.base,
+    marginTop: SPACING.sectionGap,
   },
   bonusSection: {
     marginTop: SPACING.md,
@@ -214,7 +215,8 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.xl,
     fontWeight: '700',
     color: COLORS.success,
-    letterSpacing: 2,
+    letterSpacing: LETTER_SPACING.tight,
+    lineHeight: FONT_SIZES.xl * LINE_HEIGHTS.heading,
     marginTop: SPACING.sm,
   },
   doneSubtitle: {

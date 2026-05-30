@@ -4,10 +4,11 @@ import { View, Text, StyleSheet, Animated, Dimensions, TouchableOpacity, Easing 
 
 // Third-party
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import PropTypes from 'prop-types';
 
 // App config & utilities
-import { COLORS, RANK_COLORS, FONTS, FONT_SIZES, SPACING, BORDER_RADIUS, SHADOWS } from '../theme';
+import { COLORS, RANK_COLORS, FONTS, FONT_SIZES, SPACING, BORDER_RADIUS, SHADOWS, LETTER_SPACING, LINE_HEIGHTS } from '../theme';
 import { RANK_TITLES } from '../utils/leveling';
 import { usePlayer } from '../store/PlayerContext';
 
@@ -67,6 +68,11 @@ const LevelUpOverlay = ({ data, onDismiss }) => {
 
   return (
     <Animated.View style={[styles.overlay, { opacity: overlayOpacity }]} pointerEvents="box-none">
+      <LinearGradient
+        colors={['rgba(4,4,5,0.97)', 'rgba(8,8,14,0.95)', 'rgba(4,4,5,0.98)']}
+        locations={[0, 0.5, 1]}
+        style={StyleSheet.absoluteFillObject}
+      />
       <TouchableOpacity
         style={styles.touchArea}
         activeOpacity={1}
@@ -119,7 +125,6 @@ const LevelUpOverlay = ({ data, onDismiss }) => {
 const styles = StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.92)',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1000,
@@ -138,9 +143,11 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.heading,
     fontSize: FONT_SIZES.xxxl,
     fontWeight: '700',
-    letterSpacing: 8,
+    letterSpacing: LETTER_SPACING.tight,
+    lineHeight: FONT_SIZES.xxxl * LINE_HEIGHTS.heading,
     marginBottom: SPACING.xl,
     opacity: 0.9,
+    color: COLORS.textPrimary,
   },
   levelRow: {
     flexDirection: 'row',
@@ -158,6 +165,8 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.heading,
     fontSize: FONT_SIZES.xxxl,
     fontWeight: '700',
+    letterSpacing: LETTER_SPACING.tight,
+    lineHeight: FONT_SIZES.xxxl * LINE_HEIGHTS.heading,
   },
   rankArea: {
     marginBottom: SPACING.xxl,
