@@ -10,8 +10,15 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   useAnimatedReaction,
-  runOnJS,
+  withSpring,
+  withTiming,
+  withSequence,
+  withRepeat,
+  interpolateColor,
+  FadeInUp,
+  Easing,
 } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 import { COLORS, STAT_COLORS, FONTS, FONT_SIZES, SPACING, BORDER_RADIUS } from '../theme';
 import { usePlayer } from '../store/PlayerContext';
 import { EXERCISES, DUNGEONS } from '../data/exercises';
@@ -37,12 +44,56 @@ function AnimatedTimerDisplay({ sharedValue, style }) {
   useAnimatedReaction(
     () => sharedValue.value,
     (current) => {
-      runOnJS(updateDisplay)(current);
+      'worklet';
+      scheduleOnRN(() => updateDisplay(current))();
     },
     [sharedValue]
   );
 
   return <Text style={style}>{display}</Text>;
+}
+
+// ─── Animated Set Button ─────────────────────────────────────────────────────
+// Each set button has its own Reanimated shared value.
+// On completion: springs to 1.35× scale then bounces back — a satisfying stamp.
+function SetButton({ index, completed, statColor, onPress }) {
+  const scale = useSharedValue(1);
+  const checkRotate = useSharedValue(0);
+
+  const handlePress = () => {
+    if (completed) return;
+    // Scale pop: 1 → 1.35 → 1 with spring
+    scale.value = withSequence(
+      withSpring(1.35, { damping: 4, stiffness: 400 }),
+      withSpring(1, { damping: 12, stiffness: 200 })
+    );
+    // Check icon stamps in with a spin
+    checkRotate.value = 0;
+    checkRotate.value = withSpring(360, { damping: 14, stiffness: 180 });
+    onPress();
+  };
+
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const checkStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${checkRotate.value}deg` }],
+  }));
+
+  return (
+    <Animated.View style={[rowStyles.setBtn, completed && { backgroundColor: statColor, borderColor: statColor }, animStyle]}>
+      <Animated.View onTouchEnd={!completed ? handlePress : undefined} style={rowStyles.setBtnTouchArea}>
+        {completed ? (
+          <Animated.View style={checkStyle}>
+            <Animated.Text style={rowStyles.checkIcon}>✓</Animated.Text>
+          </Animated.View>
+        ) : (
+          <Text style={rowStyles.setNum}>{index + 1}</Text>
+        )}
+      </Animated.View>
+    </Animated.View>
+  );
 }
 
 // ─── Inline ExerciseRow with remove button ────────────────────────────────────
@@ -71,21 +122,13 @@ function ExerciseRow({ exercise, completedSets = [], totalSets, onCompleteSet, o
       <View style={rowStyles.right}>
         <View style={rowStyles.setsRow}>
           {Array.from({ length: totalSets }, (_, i) => (
-            <TouchableOpacity
+            <SetButton
               key={i}
-              style={[
-                rowStyles.setBtn,
-                completedSets[i] && { backgroundColor: statColor, borderColor: statColor },
-              ]}
-              onPress={() => !completedSets[i] && onCompleteSet(exercise.id, i)}
-              disabled={!!completedSets[i]}
-            >
-              {completedSets[i] ? (
-                <MaterialCommunityIcons name="check" size={12} color={COLORS.background} />
-              ) : (
-                <Text style={rowStyles.setNum}>{i + 1}</Text>
-              )}
-            </TouchableOpacity>
+              index={i}
+              completed={!!completedSets[i]}
+              statColor={statColor}
+              onPress={() => onCompleteSet(exercise.id, i)}
+            />
           ))}
         </View>
 
@@ -143,6 +186,16 @@ const rowStyles = StyleSheet.create({
     borderColor: COLORS.surfaceBorder,
     alignItems: 'center', justifyContent: 'center',
     backgroundColor: COLORS.surfaceLight,
+    overflow: 'visible',
+  },
+  setBtnTouchArea: {
+    width: '100%', height: '100%',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  checkIcon: {
+    fontSize: 12,
+    color: COLORS.background,
+    fontWeight: '700',
   },
   setNum: { fontFamily: FONTS.body, fontSize: FONT_SIZES.xs, color: COLORS.textSecondary, fontWeight: '600' },
   removeBtn: { paddingTop: SPACING.xs },
@@ -385,6 +438,51 @@ const addStyles = StyleSheet.create({
   },
 });
 
+
+// ─── Empty Workout State — floating sword icon ────────────────────────────────
+function EmptyWorkoutState({ navigation }) {
+  const floatY = useSharedValue(0);
+
+  useEffect(() => {
+    // Infinite gentle oscillation: 0 → -8px → 0 → 8px → 0, period ~2.4s
+    floatY.value = withRepeat(
+      withSequence(
+        withTiming(-8, { duration: 1200, easing: Easing.inOut(Easing.sin) }),
+        withTiming(8, { duration: 1200, easing: Easing.inOut(Easing.sin) })
+      ),
+      -1, // infinite
+      true
+    );
+  }, []);
+
+  const floatStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: floatY.value }],
+  }));
+
+  return (
+    <Animated.View entering={FadeInUp.duration(500)} style={styles.emptyContainer}>
+      <Animated.View style={floatStyle}>
+        <MaterialCommunityIcons name="sword-cross" size={64} color={COLORS.textMuted} />
+      </Animated.View>
+      <Text style={styles.emptyTitle}>No Active Dungeon</Text>
+      <Text style={styles.emptySubtitle}>Select a dungeon to start your training</Text>
+      <TouchableOpacity
+        style={styles.goButton}
+        onPress={() => navigation.navigate('Dungeons')}
+        activeOpacity={0.85}
+      >
+        <LinearGradient
+          colors={[COLORS.accentDark, COLORS.accent]}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+          style={styles.goButtonGradient}
+        >
+          <Text style={styles.goButtonText}>SELECT DUNGEON</Text>
+        </LinearGradient>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+}
+
 // ─── Main WorkoutScreen ───────────────────────────────────────────────────────
 export default function WorkoutScreen({ navigation }) {
   // Opt out of React Compiler — beta hoists activeWorkout.exercises past the
@@ -464,7 +562,24 @@ export default function WorkoutScreen({ navigation }) {
   // Animated style for rest progress bar — driven by shared value on UI thread
   const restProgressStyle = useAnimatedStyle(() => {
     const progress = restDuration > 0 ? restRemainingShared.value / restDuration : 0;
-    return { width: `${progress * 100}%` };
+    // Color shifts: accent (resting) → warning (10s) → danger (0s)
+    const urgencyColor = interpolateColor(
+      restRemainingShared.value,
+      [0, 5, 10, restDuration],
+      [COLORS.danger, COLORS.danger, COLORS.warning, COLORS.accent]
+    );
+    return {
+      width: `${progress * 100}%`,
+      backgroundColor: urgencyColor,
+    };
+  });
+
+  // Subtle opacity pulse when very low time remains (≤ 5s)
+  const restBarPulseStyle = useAnimatedStyle(() => {
+    if (restRemainingShared.value <= 5 && restRemainingShared.value > 0) {
+      return { opacity: 0.75 };
+    }
+    return { opacity: 1 };
   });
 
   const formatTime = (seconds) => {
@@ -558,25 +673,7 @@ export default function WorkoutScreen({ navigation }) {
 
   // No active workout
   if (!activeWorkout) {
-    return (
-      <View style={styles.emptyContainer}>
-        <MaterialCommunityIcons name="sword-cross" size={60} color={COLORS.textMuted} />
-        <Text style={styles.emptyTitle}>No Active Dungeon</Text>
-        <Text style={styles.emptySubtitle}>Select a dungeon to start your training</Text>
-        <TouchableOpacity
-          style={styles.goButton}
-          onPress={() => navigation.navigate('Dungeons')}
-        >
-          <LinearGradient
-            colors={[COLORS.accentDark, COLORS.accent]}
-            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-            style={styles.goButtonGradient}
-          >
-            <Text style={styles.goButtonText}>SELECT DUNGEON</Text>
-          </LinearGradient>
-        </TouchableOpacity>
-      </View>
-    );
+    return <EmptyWorkoutState navigation={navigation} />;
   }
 
   const totalSetsCompleted = Object.values(activeWorkout.completedSets || {})
@@ -650,6 +747,7 @@ export default function WorkoutScreen({ navigation }) {
                 style={[
                   styles.restProgressFill,
                   restProgressStyle,
+                  restBarPulseStyle,
                 ]}
               />
             </View>
@@ -952,8 +1050,8 @@ const styles = StyleSheet.create({
   },
   restProgressFill: {
     height: '100%',
-    backgroundColor: COLORS.accent,
     borderRadius: BORDER_RADIUS.round,
+    // backgroundColor is driven by interpolateColor in restProgressStyle (UI thread)
   },
   restConfigRow: {
     flexDirection: 'row',

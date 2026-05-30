@@ -1,8 +1,18 @@
 // React & React Native
-import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
 
 // Third-party
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withDelay,
+  withSequence,
+  withTiming,
+  interpolateColor,
+  Easing,
+} from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import PropTypes from 'prop-types';
 
@@ -11,40 +21,63 @@ import { COLORS, STAT_COLORS, FONTS, FONT_SIZES, SPACING, BORDER_RADIUS } from '
 import { usePlayer } from '../store/PlayerContext';
 
 /**
- * Animated stat progress bar with gradient fill.
- * Width animates to the current progress value when animations are enabled.
- * @param { string } label - Stat name (e.g. 'STR', 'AGI') used for color lookup and display
- * @param { number } value - Current XP value within the stat
- * @param { number } maxValue - XP required for next level (default 100)
- * @param { string } color - Override color for the bar fill
- * @param { bool } showLevel - Whether to show the level indicator
- * @param { number } level - Override level number to display
- * @param { bool } animate - Whether to animate the bar fill (further gated by global settings)
+ * Animated stat progress bar — fully migrated to Reanimated.
+ * - Fills with a spring animation on mount and when value changes.
+ * - Stagger delay (index prop) makes multiple bars cascade in like an RPG.
+ * - A glowing "tip" marker rides at the leading edge of the fill for visual depth.
+ * - When the bar is full (progress ≥ 1), it pulses gold to signal max level.
  */
-
-const StatBar = ({ label, value, maxValue = 100, color, showLevel = true, level, animate = true }) => {
+const StatBar = ({ label, value, maxValue = 100, color, showLevel = true, level, animate = true, index = 0 }) => {
   const progress = Math.min(value / maxValue, 1);
-  const animatedWidth = useRef(new Animated.Value(0)).current;
   const barColor = color || STAT_COLORS[label] || COLORS.primary;
   const { settings } = usePlayer();
   const shouldAnimate = animate && (settings?.animationsEnabled ?? true);
 
+  // Shared value: 0 → progress (driven by spring)
+  const fillProgress = useSharedValue(0);
+  // Shared value for tip glow opacity — pulses when full
+  const tipOpacity = useSharedValue(0);
+
   useEffect(() => {
     if (shouldAnimate) {
-      Animated.timing(animatedWidth, {
-        toValue: progress,
-        duration: 800,
-        useNativeDriver: false,
-      }).start();
+      // Stagger: each bar starts 80ms later than the previous one
+      fillProgress.value = withDelay(
+        index * 80,
+        withSpring(progress, {
+          damping: 22,
+          stiffness: 160,
+          mass: 0.8,
+        })
+      );
+      // Tip glow fades in as bar fills, then if full pulses
+      tipOpacity.value = withDelay(
+        index * 80 + 200,
+        withTiming(progress > 0 ? 1 : 0, { duration: 400 })
+      );
     } else {
-      animatedWidth.setValue(progress);
+      fillProgress.value = progress;
+      tipOpacity.value = progress > 0 ? 1 : 0;
     }
-  }, [progress, shouldAnimate]);
+  }, [progress, shouldAnimate, index]);
 
-  const widthInterpolated = animatedWidth.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0%', '100%'],
-  });
+  // Animated bar fill width
+  const fillStyle = useAnimatedStyle(() => ({
+    width: `${fillProgress.value * 100}%`,
+  }));
+
+  // Tip glow — a small bright dot that sits at the right edge of the fill
+  const tipStyle = useAnimatedStyle(() => ({
+    opacity: tipOpacity.value,
+  }));
+
+  // Bar track color flashes gold briefly when max level reached
+  const trackStyle = useAnimatedStyle(() => ({
+    backgroundColor: interpolateColor(
+      fillProgress.value,
+      [0, 0.99, 1],
+      [COLORS.surfaceLight, COLORS.surfaceLight, barColor + '22']
+    ),
+  }));
 
   return (
     <View style={styles.container}>
@@ -54,17 +87,18 @@ const StatBar = ({ label, value, maxValue = 100, color, showLevel = true, level,
           <Text style={styles.level}>Lv.{level || Math.floor(value / 200) + 1}</Text>
         )}
       </View>
-      <View style={styles.barBackground}>
-        <Animated.View style={[styles.barFill, { width: widthInterpolated }]}>
+      <Animated.View style={[styles.barBackground, trackStyle]}>
+        <Animated.View style={[styles.barFill, fillStyle]}>
           <LinearGradient
-            colors={[barColor + '99', barColor]}
+            colors={[barColor + '80', barColor]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.gradient}
           />
+          {/* Glowing tip at the leading edge */}
+          <Animated.View style={[styles.tipGlow, { backgroundColor: barColor }, tipStyle]} />
         </Animated.View>
-        <View style={[styles.barGlow, { shadowColor: barColor }]} />
-      </View>
+      </Animated.View>
       <Text style={styles.valueText}>
         {Math.floor(value % 200)} / 200
       </Text>
@@ -96,7 +130,6 @@ const styles = StyleSheet.create({
   },
   barBackground: {
     height: 8,
-    backgroundColor: COLORS.surfaceLight,
     borderRadius: BORDER_RADIUS.round,
     overflow: 'hidden',
     position: 'relative',
@@ -104,20 +137,26 @@ const styles = StyleSheet.create({
   barFill: {
     height: '100%',
     borderRadius: BORDER_RADIUS.round,
-    overflow: 'hidden',
+    overflow: 'visible',
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   gradient: {
     flex: 1,
+    height: '100%',
+    borderRadius: BORDER_RADIUS.round,
   },
-  barGlow: {
+  // Small bright dot at the leading edge of the fill — gives the bar a "lit tip"
+  tipGlow: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    shadowOpacity: 0.5,
+    right: -2,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    shadowOpacity: 0.9,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 0 },
+    elevation: 2,
   },
   valueText: {
     fontFamily: FONTS.body,
@@ -136,6 +175,7 @@ StatBar.propTypes = {
   showLevel: PropTypes.bool,
   level: PropTypes.number,
   animate: PropTypes.bool,
+  index: PropTypes.number,
 };
 
 StatBar.defaultProps = {
@@ -144,6 +184,7 @@ StatBar.defaultProps = {
   showLevel: true,
   level: null,
   animate: true,
+  index: 0,
 };
 
 export default StatBar;

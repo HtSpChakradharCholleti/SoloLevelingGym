@@ -1,4 +1,3 @@
-// React & React Native
 import React, { useState, useMemo } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 
@@ -18,6 +17,37 @@ import { usePlayer } from '../store/PlayerContext';
 
 // Components
 import SystemPanel from '../components/SystemPanel';
+
+// ─── Count-Up Animated Number ─────────────────────────────────────────────────
+// Pure JS requestAnimationFrame count-up. No Reanimated, no cross-thread calls.
+// ease-out-cubic easing applied manually to elapsed/duration progress.
+function CountUpText({ target, delay = 0, style }) {
+  const [displayed, setDisplayed] = useState(0);
+
+  React.useEffect(() => {
+    let frame;
+    const startTime = Date.now() + delay;
+    const duration = 800;
+
+    const tick = () => {
+      const now = Date.now();
+      if (now < startTime) {
+        frame = requestAnimationFrame(tick);
+        return;
+      }
+      const elapsed = now - startTime;
+      const t = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - t, 3); // ease-out-cubic
+      setDisplayed(Math.round(target * eased));
+      if (t < 1) frame = requestAnimationFrame(tick);
+    };
+
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [target, delay]);
+
+  return <Text style={style}>{displayed}</Text>;
+}
 
 // ─── XP Per-Day Bar Chart ─────────────────────────────────────────────────────
 const CHART_DAYS = 14;
@@ -591,18 +621,18 @@ export default function HistoryScreen() {
 
       {/* Stats Summary */}
       <View style={styles.summaryRow}>
-        <View style={styles.summaryCard}>
-          <Text style={styles.summaryValue}>{totalWorkouts}</Text>
+        <Animated.View entering={animationsEnabled ? FadeInUp.delay(0).duration(400) : undefined} style={styles.summaryCard}>
+          <CountUpText target={totalWorkouts} delay={0} style={styles.summaryValue} />
           <Text style={styles.summaryLabel}>BATTLES</Text>
-        </View>
-        <View style={styles.summaryCard}>
-          <Text style={styles.summaryValue}>{currentStreak}</Text>
+        </Animated.View>
+        <Animated.View entering={animationsEnabled ? FadeInUp.delay(100).duration(400) : undefined} style={styles.summaryCard}>
+          <CountUpText target={currentStreak} delay={150} style={styles.summaryValue} />
           <Text style={styles.summaryLabel}>STREAK</Text>
-        </View>
-        <View style={styles.summaryCard}>
-          <Text style={styles.summaryValue}>{bestStreak}</Text>
+        </Animated.View>
+        <Animated.View entering={animationsEnabled ? FadeInUp.delay(200).duration(400) : undefined} style={styles.summaryCard}>
+          <CountUpText target={bestStreak} delay={300} style={styles.summaryValue} />
           <Text style={styles.summaryLabel}>BEST</Text>
-        </View>
+        </Animated.View>
       </View>
 
       {/* XP Per Day Chart */}

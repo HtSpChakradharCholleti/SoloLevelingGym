@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, Dimensions, TouchableOpacity, Alert, Switch } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring, withTiming, withDelay } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS, STAT_COLORS, STAT_LABELS, STAT_DESCRIPTIONS, RANK_COLORS, FONTS, FONT_SIZES, SPACING, BORDER_RADIUS, SHADOWS, GRADIENTS } from '../theme';
@@ -80,6 +81,15 @@ export default function HunterProfileScreen({ navigation }) {
   const progress = getLevelProgress(level, xp);
   const rankColor = RANK_COLORS[rank] || COLORS.primary;
 
+  // XP bar spring animation
+  const xpFillProgress = useSharedValue(0);
+  useEffect(() => {
+    xpFillProgress.value = withDelay(300, withSpring(progress, { damping: 20, stiffness: 120 }));
+  }, [progress]);
+  const xpBarAnimStyle = useAnimatedStyle(() => ({
+    width: `${xpFillProgress.value * 100}%`,
+  }));
+
   // ── Workout time stats ──────────────────────────────────────────────────
   const { todayTimeStr, avgTimeStr } = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
@@ -154,14 +164,14 @@ export default function HunterProfileScreen({ navigation }) {
               <Text style={[styles.levelValue, { color: rankColor }]}>{level}</Text>
             </View>
             <View style={styles.xpBarOuter}>
-              <View style={[styles.xpBarFill, { width: `${progress * 100}%` }]}>
+              <Animated.View style={[styles.xpBarFill, xpBarAnimStyle]}>
                 <LinearGradient
                   colors={GRADIENTS[`rank${rank}`] || GRADIENTS.primary}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                   style={styles.xpBarGradient}
                 />
-              </View>
+              </Animated.View>
             </View>
             <Text style={styles.xpText}>{xp} / {requiredXP} XP</Text>
 
@@ -320,7 +330,7 @@ export default function HunterProfileScreen({ navigation }) {
         </View>
 
         <View style={styles.statsGrid}>
-          {Object.entries(stats).map(([stat, value]) => (
+          {Object.entries(stats).map(([stat, value], i) => (
             <View key={stat} style={styles.statItem}>
               <StatBar
                 label={stat}
@@ -328,6 +338,7 @@ export default function HunterProfileScreen({ navigation }) {
                 maxValue={200}
                 color={STAT_COLORS[stat]}
                 level={getStatLevel(value)}
+                index={i}
               />
               <Text style={styles.statDescription}>{STAT_DESCRIPTIONS[stat]}</Text>
             </View>
