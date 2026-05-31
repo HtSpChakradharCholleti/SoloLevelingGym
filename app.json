@@ -52,7 +52,16 @@
         {
           "channel": "production"
         }
-      ]
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "abiFilters": ["arm64-v8a"]
+          }
+        }
+      ],
+      "./plugins/withNetworkSecurityConfig"
     ]
   }
 }

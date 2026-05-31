@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, Dimensions, TouchableOpacity, Alert, Switch } from 'react-native';
-import Animated, { useSharedValue, useAnimatedStyle, withSpring, withTiming, withDelay } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, withDelay, Easing } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS, STAT_COLORS, STAT_LABELS, STAT_DESCRIPTIONS, RANK_COLORS, FONTS, FONT_SIZES, SPACING, BORDER_RADIUS, SHADOWS, GRADIENTS } from '../theme';
@@ -81,10 +81,13 @@ export default function HunterProfileScreen({ navigation }) {
   const progress = getLevelProgress(level, xp);
   const rankColor = RANK_COLORS[rank] || COLORS.primary;
 
-  // XP bar spring animation
+  // XP bar fill animation — ease-out-cubic for smooth decel with no overshoot
   const xpFillProgress = useSharedValue(0);
   useEffect(() => {
-    xpFillProgress.value = withDelay(300, withSpring(progress, { damping: 20, stiffness: 120 }));
+    xpFillProgress.value = withDelay(
+      300,
+      withTiming(progress, { duration: 700, easing: Easing.out(Easing.cubic) })
+    );
   }, [progress]);
   const xpBarAnimStyle = useAnimatedStyle(() => ({
     width: `${xpFillProgress.value * 100}%`,
@@ -205,24 +208,6 @@ export default function HunterProfileScreen({ navigation }) {
           </View>
         </View>
       </LinearGradient>
-
-      {/* Quick Stats Row */}
-      <View style={styles.quickStatsRow}>
-        <View style={styles.quickStat}>
-          <Text style={styles.quickStatValue}>{totalWorkouts}</Text>
-          <Text style={styles.quickStatLabel}>Workouts</Text>
-        </View>
-        <View style={[styles.quickStatDivider]} />
-        <View style={styles.quickStat}>
-          <Text style={styles.quickStatValue}>{currentStreak}</Text>
-          <Text style={styles.quickStatLabel}>Streak 🔥</Text>
-        </View>
-        <View style={[styles.quickStatDivider]} />
-        <View style={styles.quickStat}>
-          <Text style={styles.quickStatValue}>{bestStreak}</Text>
-          <Text style={styles.quickStatLabel}>Best Streak</Text>
-        </View>
-      </View>
 
       {/* Workout Time Stats */}
       <SystemPanel glowColor={COLORS.success} style={{ marginHorizontal: SPACING.base, marginBottom: SPACING.base }}>

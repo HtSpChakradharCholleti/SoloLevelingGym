@@ -1,8 +1,15 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withTiming,
+  Easing,
+} from 'react-native-reanimated';
 import { COLORS, FONTS, FONT_SIZES, SPACING } from '../theme';
 
 import HunterProfileScreen from '../screens/HunterProfileScreen';
@@ -16,13 +23,60 @@ import WeightHistoryScreen from '../screens/WeightHistoryScreen';
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
+// ─── Animated Tab Button ──────────────────────────────────────────────────────
+// Wraps each tab's touchable area with a Reanimated spring scale.
+// Press-in compresses to 0.84×; release springs back to 1× with slight overshoot.
+// Runs entirely on the UI thread — zero JS involvement during the animation.
+function AnimatedTabButton({ children, onPress, onLongPress, style, accessibilityRole, accessibilityState }) {
+  const scale = useSharedValue(1);
+
+  const handlePressIn = () => {
+    scale.value = withSpring(0.86, { damping: 15, stiffness: 400 });
+  };
+
+  const handlePressOut = () => {
+    // withTiming instead of withSpring: snaps cleanly to 1x with no overshoot/oscillation.
+    // One compress, one release — no wobble.
+    scale.value = withTiming(1, { duration: 180, easing: Easing.out(Easing.quad) });
+  };
+
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  return (
+    <Animated.View style={[style, animStyle]}>
+      <TouchableOpacity
+        onPress={onPress}
+        onLongPress={onLongPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        accessibilityRole={accessibilityRole}
+        accessibilityState={accessibilityState}
+        style={tabBtnStyles.inner}
+        activeOpacity={1}
+      >
+        {children}
+      </TouchableOpacity>
+    </Animated.View>
+  );
+}
+
+const tabBtnStyles = StyleSheet.create({
+  inner: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});
+
 // Shared header options for native-stack screens.
 // native-stack only accepts `backgroundColor` in headerStyle;
 // shadow/border are controlled via headerShadowVisible + headerBackground.
 const sharedHeaderOptions = {
   headerStyle: { backgroundColor: COLORS.background },
-  headerShadowVisible: false,        // removes the default platform shadow/divider
-  headerBackground: () => (          // custom bottom border to match the design
+  headerShadowVisible: false,
+  headerBackground: () => (
     <View style={styles.headerBackground} />
   ),
   headerTintColor: COLORS.textPrimary,
@@ -38,7 +92,6 @@ function MainTabs() {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
-        // Tab navigator uses its own JS header — keep the same styling as before
         headerStyle: {
           backgroundColor: COLORS.background,
           elevation: 0,
@@ -53,6 +106,8 @@ function MainTabs() {
           fontWeight: '700',
           letterSpacing: 1,
         },
+        // Spring-press animation on every tab tap
+        tabBarButton: (props) => <AnimatedTabButton {...props} />,
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
           switch (route.name) {
@@ -99,39 +154,27 @@ function MainTabs() {
       <Tab.Screen
         name="Profile"
         component={HunterProfileScreen}
-        options={{
-          title: 'Hunter',
-          headerTitle: 'HUNTER PROFILE',
-        }}
+        options={{ title: 'Hunter', headerTitle: 'HUNTER PROFILE' }}
       />
       <Tab.Screen
         name="Quests"
         component={DailyQuestsScreen}
-        options={{
-          headerTitle: 'DAILY QUEST',
-        }}
+        options={{ headerTitle: 'DAILY QUEST' }}
       />
       <Tab.Screen
         name="Dungeons"
         component={DungeonsScreen}
-        options={{
-          headerTitle: 'DUNGEONS',
-        }}
+        options={{ headerTitle: 'DUNGEONS' }}
       />
       <Tab.Screen
         name="Workout"
         component={WorkoutScreen}
-        options={{
-          headerTitle: 'ACTIVE DUNGEON',
-        }}
+        options={{ headerTitle: 'ACTIVE DUNGEON' }}
       />
       <Tab.Screen
         name="History"
         component={HistoryScreen}
-        options={{
-          title: 'Shadow',
-          headerTitle: 'SHADOW ARMY',
-        }}
+        options={{ title: 'Shadow', headerTitle: 'SHADOW ARMY' }}
       />
     </Tab.Navigator>
   );
@@ -139,8 +182,7 @@ function MainTabs() {
 
 export default function AppNavigator() {
   return (
-    // native-stack: transitions run on the UI thread (native platform APIs),
-    // completely independent of the JS thread — no JS jank during navigation.
+    // native-stack: transitions run on the UI thread via native platform APIs.
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Main" component={MainTabs} />
       <Stack.Screen
@@ -149,6 +191,11 @@ export default function AppNavigator() {
         options={{
           headerShown: true,
           headerTitle: 'STRETCH TIMER',
+          // Slides up from the bottom — more dramatic than the default side-slide.
+          // fullScreenGestureEnabled lets users swipe down from anywhere to dismiss.
+          animation: 'slide_from_bottom',
+          gestureEnabled: true,
+          fullScreenGestureEnabled: true,
           ...sharedHeaderOptions,
         }}
       />
@@ -158,6 +205,9 @@ export default function AppNavigator() {
         options={{
           headerShown: true,
           headerTitle: 'WEIGHT HISTORY',
+          animation: 'slide_from_bottom',
+          gestureEnabled: true,
+          fullScreenGestureEnabled: true,
           ...sharedHeaderOptions,
         }}
       />
@@ -166,8 +216,6 @@ export default function AppNavigator() {
 }
 
 const styles = StyleSheet.create({
-  // Rendered as the native-stack header's background layer —
-  // gives us the custom bottom border that headerStyle can't provide.
   headerBackground: {
     flex: 1,
     backgroundColor: COLORS.background,

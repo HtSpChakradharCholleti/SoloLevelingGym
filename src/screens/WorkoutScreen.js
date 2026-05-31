@@ -9,16 +9,15 @@ import { useKeepAwake } from 'expo-keep-awake';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
-  useAnimatedReaction,
   withSpring,
   withTiming,
   withSequence,
   withRepeat,
+  cancelAnimation,
   interpolateColor,
   FadeInUp,
   Easing,
 } from 'react-native-reanimated';
-import { scheduleOnRN } from 'react-native-worklets';
 import { COLORS, STAT_COLORS, FONTS, FONT_SIZES, SPACING, BORDER_RADIUS } from '../theme';
 import { usePlayer } from '../store/PlayerContext';
 import { EXERCISES, DUNGEONS } from '../data/exercises';
@@ -28,71 +27,37 @@ import SoundManager from '../utils/SoundManager';
 import NotificationManager from '../utils/NotificationManager';
 
 // ─── Animated Timer Display ───────────────────────────────────────────────────
-// Renders a formatted MM:SS string from a Reanimated shared value.
-// Uses useAnimatedReaction to push value changes to the JS thread for
-// minimal React re-renders, keeping the timer jank-free during scrolls.
+// Polls the shared value from the JS thread every 250ms to format MM:SS.
+// Shared values are readable from JS via .value — no worklet crossing needed.
+// 250ms polling is more than sufficient for a MM:SS display that changes ~1/s.
 function AnimatedTimerDisplay({ sharedValue, style }) {
   const [display, setDisplay] = useState('00:00');
 
-  const updateDisplay = useCallback((seconds) => {
-    const s = Math.max(0, Math.round(seconds));
-    const mins = Math.floor(s / 60);
-    const secs = s % 60;
-    setDisplay(`${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`);
-  }, []);
-
-  useAnimatedReaction(
-    () => sharedValue.value,
-    (current) => {
-      'worklet';
-      scheduleOnRN(() => updateDisplay(current))();
-    },
-    [sharedValue]
-  );
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const s = Math.max(0, Math.round(sharedValue.value));
+      const mins = Math.floor(s / 60);
+      const secs = s % 60;
+      setDisplay(`${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`);
+    }, 250);
+    return () => clearInterval(interval);
+  }, [sharedValue]);
 
   return <Text style={style}>{display}</Text>;
 }
 
-// ─── Animated Set Button ─────────────────────────────────────────────────────
-// Each set button has its own Reanimated shared value.
-// On completion: springs to 1.35× scale then bounces back — a satisfying stamp.
+// ─── Set Button ──────────────────────────────────────────────────────────────
 function SetButton({ index, completed, statColor, onPress }) {
-  const scale = useSharedValue(1);
-  const checkRotate = useSharedValue(0);
-
-  const handlePress = () => {
-    if (completed) return;
-    // Scale pop: 1 → 1.35 → 1 with spring
-    scale.value = withSequence(
-      withSpring(1.35, { damping: 4, stiffness: 400 }),
-      withSpring(1, { damping: 12, stiffness: 200 })
-    );
-    // Check icon stamps in with a spin
-    checkRotate.value = 0;
-    checkRotate.value = withSpring(360, { damping: 14, stiffness: 180 });
-    onPress();
-  };
-
-  const animStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  const checkStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${checkRotate.value}deg` }],
-  }));
-
   return (
-    <Animated.View style={[rowStyles.setBtn, completed && { backgroundColor: statColor, borderColor: statColor }, animStyle]}>
-      <Animated.View onTouchEnd={!completed ? handlePress : undefined} style={rowStyles.setBtnTouchArea}>
-        {completed ? (
-          <Animated.View style={checkStyle}>
-            <Animated.Text style={rowStyles.checkIcon}>✓</Animated.Text>
-          </Animated.View>
-        ) : (
-          <Text style={rowStyles.setNum}>{index + 1}</Text>
-        )}
-      </Animated.View>
-    </Animated.View>
+    <TouchableOpacity
+      onPress={!completed ? onPress : undefined}
+      disabled={completed}
+      activeOpacity={0.7}
+    >
+      <View style={[rowStyles.setBtn, completed && { backgroundColor: statColor, borderColor: statColor }]}>
+        <Text style={[rowStyles.setNum, completed && { color: COLORS.textPrimary }]}>{index + 1}</Text>
+      </View>
+    </TouchableOpacity>
   );
 }
 
@@ -197,7 +162,7 @@ const rowStyles = StyleSheet.create({
     color: COLORS.background,
     fontWeight: '700',
   },
-  setNum: { fontFamily: FONTS.body, fontSize: FONT_SIZES.xs, color: COLORS.textSecondary, fontWeight: '600' },
+  setNum: { fontFamily: FONTS.body, fontSize: FONT_SIZES.xs, color: COLORS.textPrimary, fontWeight: '600' },
   removeBtn: { paddingTop: SPACING.xs },
 });
 
@@ -453,6 +418,10 @@ function EmptyWorkoutState({ navigation }) {
       -1, // infinite
       true
     );
+    // CRITICAL: cancel on unmount. withRepeat runs on the UI thread indefinitely.
+    // If the component unmounts (workout starts) without cancelling, the UI thread
+    // tries to write to the freed shared value → SIGSEGV use-after-free.
+    return () => cancelAnimation(floatY);
   }, []);
 
   const floatStyle = useAnimatedStyle(() => ({
