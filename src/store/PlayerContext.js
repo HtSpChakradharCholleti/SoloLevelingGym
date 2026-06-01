@@ -1,10 +1,46 @@
 import React, { createContext, useContext, useReducer, useEffect, useCallback, useMemo } from 'react';
+import { Alert } from 'react-native';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
+import * as DocumentPicker from 'expo-document-picker';
 import { storage } from './storage';
 import { processXPGain, getRankForLevel, getStatLevel } from '../utils/leveling';
 import { generateDailyQuests, shouldResetQuests, getTodayString } from '../utils/quests';
 import SoundManager from '../utils/SoundManager';
 
 const STORAGE_KEY = '@solo_leveling_gym';
+const BACKUP_KEY  = '@solo_leveling_gym_backup';
+const CURRENT_SCHEMA_VERSION = 2;
+
+/**
+ * Migrate persisted state from older schema versions to current.
+ * Each numbered block runs exactly once when the user's stored version is behind.
+ */
+function migrateState(raw) {
+  const state = { ...raw };
+  let version = state.schemaVersion || 0;
+
+  // v0 → v1: ensure array fields and settings object exist
+  if (version < 1) {
+    state.weightHistory      = state.weightHistory      || [];
+    state.measurementsHistory = state.measurementsHistory || [];
+    state.settings = state.settings || { animationsEnabled: true, bgmEnabled: true, hapticsEnabled: true };
+    state.schemaVersion = 1;
+    version = 1;
+  }
+
+  // v1 → v2: add weightUnit to settings
+  if (version < 2) {
+    state.settings = {
+      ...state.settings,
+      weightUnit: state.settings.weightUnit || 'kg',
+    };
+    state.schemaVersion = 2;
+    version = 2;
+  }
+
+  return state;
+}
 
 const PlayerContext = createContext(null);
 
@@ -51,7 +87,11 @@ const initialState = {
     animationsEnabled: true,
     bgmEnabled: true,
     hapticsEnabled: true,
+    weightUnit: 'kg',
   },
+
+  // Schema version
+  schemaVersion: CURRENT_SCHEMA_VERSION,
 
   // Loaded
   isLoaded: false,
@@ -68,6 +108,7 @@ const ActionTypes = {
   ADD_EXERCISE_TO_WORKOUT: 'ADD_EXERCISE_TO_WORKOUT',
   REMOVE_EXERCISE_FROM_WORKOUT: 'REMOVE_EXERCISE_FROM_WORKOUT',
   COMPLETE_EXERCISE_SET: 'COMPLETE_EXERCISE_SET',
+  SET_EXERCISE_WEIGHT: 'SET_EXERCISE_WEIGHT',
   FINISH_WORKOUT: 'FINISH_WORKOUT',
   CANCEL_WORKOUT: 'CANCEL_WORKOUT',
   DISMISS_LEVEL_UP: 'DISMISS_LEVEL_UP',
@@ -151,10 +192,27 @@ function playerReducer(state, action) {
           exercises: action.payload.exercises,
           startTime: Date.now(),
           completedSets: {},
+          exerciseWeights: {},   // { [exerciseId]: number | null }
           xpEarned: 0,
           statXPEarned: {},
         },
       };
+
+    case ActionTypes.SET_EXERCISE_WEIGHT: {
+      const { exerciseId, weight } = action.payload;
+      const workout = state.activeWorkout;
+      if (!workout) return state;
+      return {
+        ...state,
+        activeWorkout: {
+          ...workout,
+          exerciseWeights: {
+            ...workout.exerciseWeights,
+            [exerciseId]: weight,
+          },
+        },
+      };
+    }
 
     case ActionTypes.ADD_EXERCISE_TO_WORKOUT: {
       const workout = state.activeWorkout;
@@ -244,6 +302,8 @@ function playerReducer(state, action) {
           name: e.name,
           completedSets: (workout.completedSets[e.id] || []).filter(Boolean).length,
           totalSets: e.sets,
+          weight: (workout.exerciseWeights || {})[e.id] ?? null,
+          weightUnit: state.settings.weightUnit || 'kg',
         })),
         xpEarned: workout.xpEarned,
         statXPEarned: workout.statXPEarned,
@@ -377,32 +437,50 @@ export function PlayerProvider({ children }) {
   }, [state.showLevelUp]);
 
   const loadState = () => {
+    const applyParsed = (parsed) => {
+      const migrated = migrateState(parsed);
+      dispatch({ type: ActionTypes.LOAD_STATE, payload: migrated });
+      if (migrated.settings?.bgmEnabled === false) SoundManager.pauseBGM();
+    };
     try {
       const saved = storage.getString(STORAGE_KEY);
       if (saved) {
-        const parsed = JSON.parse(saved);
-        dispatch({ type: ActionTypes.LOAD_STATE, payload: parsed });
-        // Sync BGM state with saved settings
-        if (parsed.settings?.bgmEnabled === false) {
-          SoundManager.pauseBGM();
-        }
+        applyParsed(JSON.parse(saved));
       } else {
         dispatch({ type: ActionTypes.LOAD_STATE, payload: {} });
       }
     } catch (e) {
-      console.error('Failed to load state:', e);
+      // Primary corrupted — try backup
+      console.warn('Primary state corrupted, trying backup...', e);
+      try {
+        const backup = storage.getString(BACKUP_KEY);
+        if (backup) {
+          applyParsed(JSON.parse(backup));
+          storage.set(STORAGE_KEY, backup); // restore primary
+          return;
+        }
+      } catch (backupErr) {
+        console.error('Backup also corrupted:', backupErr);
+      }
       dispatch({ type: ActionTypes.LOAD_STATE, payload: {} });
     }
   };
 
+  /** Strips transient UI fields before persisting. */
+  const prepareSavePayload = (currentState) => {
+    const toSave = { ...currentState };
+    delete toSave.isLoaded;
+    delete toSave.showLevelUp;
+    delete toSave.levelUpData;
+    delete toSave.xpToasts;
+    return toSave;
+  };
+
   const saveState = (currentState) => {
     try {
-      const toSave = { ...currentState };
-      delete toSave.isLoaded;
-      delete toSave.showLevelUp;
-      delete toSave.levelUpData;
-      delete toSave.xpToasts;
-      storage.set(STORAGE_KEY, JSON.stringify(toSave));
+      const json = JSON.stringify(prepareSavePayload(currentState));
+      storage.set(STORAGE_KEY, json);
+      storage.set(BACKUP_KEY,  json);
     } catch (e) {
       console.error('Failed to save state:', e);
     }
@@ -476,6 +554,13 @@ export function PlayerProvider({ children }) {
     });
   }, []);
 
+  const setExerciseWeight = useCallback((exerciseId, weight) => {
+    dispatch({
+      type: ActionTypes.SET_EXERCISE_WEIGHT,
+      payload: { exerciseId, weight },
+    });
+  }, []);
+
   const finishWorkout = useCallback(() => {
     SoundManager.playQuestComplete();
     if (state.activeWorkout) {
@@ -536,9 +621,59 @@ export function PlayerProvider({ children }) {
   const resetAll = useCallback(() => {
     try {
       storage.delete(STORAGE_KEY);
+      storage.delete(BACKUP_KEY);
       dispatch({ type: ActionTypes.RESET_ALL });
     } catch (e) {
       console.error('Failed to reset:', e);
+    }
+  }, []);
+
+  const exportData = useCallback(async () => {
+    try {
+      const payload = prepareSavePayload(state);
+      delete payload.activeWorkout; // don't export in-progress workout
+      const json    = JSON.stringify(payload, null, 2);
+      const fileUri = FileSystem.documentDirectory + 'solo-leveling-backup.json';
+      await FileSystem.writeAsStringAsync(fileUri, json);
+      await Sharing.shareAsync(fileUri, { mimeType: 'application/json', dialogTitle: 'Export Hunter Data' });
+    } catch (e) {
+      console.error('Export failed:', e);
+      Alert.alert('Export Failed', 'Could not export your data. Please try again.');
+    }
+  }, [state]);
+
+  const importData = useCallback(async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({ type: 'application/json', copyToCacheDirectory: true });
+      if (result.canceled) return;
+      const json   = await FileSystem.readAsStringAsync(result.assets[0].uri);
+      const parsed = JSON.parse(json);
+      if (!parsed.playerName || typeof parsed.level !== 'number') {
+        Alert.alert('Invalid File', 'This file is not a valid Solo Leveling Gym backup.');
+        return;
+      }
+      Alert.alert(
+        'Restore Data?',
+        `This will replace ALL current data with the backup from "${parsed.playerName}" (Level ${parsed.level}). This cannot be undone.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Restore',
+            style: 'destructive',
+            onPress: () => {
+              const migrated  = migrateState(parsed);
+              const saveJson  = JSON.stringify(migrated);
+              storage.set(STORAGE_KEY, saveJson);
+              storage.set(BACKUP_KEY,  saveJson);
+              dispatch({ type: ActionTypes.LOAD_STATE, payload: migrated });
+              Alert.alert('Restored', 'Your hunter data has been restored successfully.');
+            },
+          },
+        ]
+      );
+    } catch (e) {
+      console.error('Import failed:', e);
+      Alert.alert('Import Failed', 'Could not read the backup file. Make sure it is a valid JSON file.');
     }
   }, []);
 
@@ -553,6 +688,7 @@ export function PlayerProvider({ children }) {
     addExerciseToWorkout,
     removeExerciseFromWorkout,
     completeExerciseSet,
+    setExerciseWeight,
     finishWorkout,
     cancelWorkout,
     dismissLevelUp,
@@ -561,10 +697,12 @@ export function PlayerProvider({ children }) {
     logMeasurement,
     updateSetting,
     resetAll,
+    exportData,
+    importData,
   }), [state, gainXP, gainStatXP, completeQuest, startWorkout,
     addExerciseToWorkout, removeExerciseFromWorkout, completeExerciseSet,
-    finishWorkout, cancelWorkout, dismissLevelUp, setPlayerName,
-    logWeight, logMeasurement, updateSetting, resetAll]);
+    setExerciseWeight, finishWorkout, cancelWorkout, dismissLevelUp, setPlayerName,
+    logWeight, logMeasurement, updateSetting, resetAll, exportData, importData]);
 
   return (
     <PlayerContext.Provider value={value}>

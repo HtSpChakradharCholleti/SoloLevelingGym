@@ -61,8 +61,83 @@ function SetButton({ index, completed, statColor, onPress }) {
   );
 }
 
+// ─── Weight Chip ─────────────────────────────────────────────────────────────
+// Inline weight input sitting below the exercise name. Tapping opens the
+// numeric keyboard; blurring saves automatically — no confirm button.
+function WeightChip({ exerciseId, statColor, currentWeight, lastWeight, unit, onWeightChange }) {
+  // Local draft so the user can edit freely without every keystroke hitting state
+  const [draft, setDraft] = useState(
+    currentWeight != null ? String(currentWeight) : ''
+  );
+
+  // Keep draft in sync if parent resets weight (e.g. workout cancel → restart)
+  useEffect(() => {
+    setDraft(currentWeight != null ? String(currentWeight) : '');
+  }, [exerciseId]);
+
+  const handleBlur = () => {
+    const parsed = parseFloat(draft);
+    if (!isNaN(parsed) && parsed > 0) {
+      onWeightChange(exerciseId, parsed);
+    } else if (draft.trim() === '') {
+      onWeightChange(exerciseId, null);
+    } else {
+      // Invalid input — revert to current
+      setDraft(currentWeight != null ? String(currentWeight) : '');
+    }
+  };
+
+  const placeholder = lastWeight != null ? String(lastWeight) : '0';
+
+  return (
+    <View style={[weightStyles.chip, { borderColor: statColor + '55' }]}>
+      <MaterialCommunityIcons name="weight-kilogram" size={12} color={statColor} />
+      <TextInput
+        style={[weightStyles.input, { color: draft ? COLORS.textPrimary : COLORS.textMuted }]}
+        value={draft}
+        onChangeText={setDraft}
+        onBlur={handleBlur}
+        keyboardType="decimal-pad"
+        placeholder={placeholder}
+        placeholderTextColor={COLORS.textMuted}
+        returnKeyType="done"
+        selectTextOnFocus
+        maxLength={6}
+      />
+      <Text style={[weightStyles.unit, { color: statColor }]}>{unit}</Text>
+    </View>
+  );
+}
+
+const weightStyles = StyleSheet.create({
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderWidth: 1,
+    borderRadius: BORDER_RADIUS.sm,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 3,
+    backgroundColor: COLORS.surfaceLight,
+    alignSelf: 'flex-start',
+    marginTop: SPACING.xs,
+  },
+  input: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.xs,
+    fontWeight: '600',
+    minWidth: 32,
+    padding: 0,
+  },
+  unit: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.xs,
+    fontWeight: '600',
+  },
+});
+
 // ─── Inline ExerciseRow with remove button ────────────────────────────────────
-function ExerciseRow({ exercise, completedSets = [], totalSets, onCompleteSet, onRemove, index }) {
+function ExerciseRow({ exercise, completedSets = [], totalSets, onCompleteSet, onRemove, onWeightChange, currentWeight, lastWeight, weightUnit, index }) {
   const statColor = STAT_COLORS[exercise.stat] || COLORS.primary;
   const completedCount = completedSets.filter(Boolean).length;
   const allDone = completedCount >= totalSets;
@@ -80,6 +155,14 @@ function ExerciseRow({ exercise, completedSets = [], totalSets, onCompleteSet, o
             {totalSets} sets × {exercise.repRange || `${exercise.reps} reps`} • +{exercise.baseXP} XP
           </Text>
           {exercise.muscle ? <Text style={rowStyles.muscle}>{exercise.muscle}</Text> : null}
+          <WeightChip
+            exerciseId={exercise.id}
+            statColor={statColor}
+            currentWeight={currentWeight}
+            lastWeight={lastWeight}
+            unit={weightUnit}
+            onWeightChange={onWeightChange}
+          />
         </View>
       </View>
 
@@ -460,12 +543,29 @@ export default function WorkoutScreen({ navigation }) {
 
   const {
     activeWorkout,
+    workoutHistory,
+    settings,
     completeExerciseSet,
+    setExerciseWeight,
     finishWorkout,
     cancelWorkout,
     addExerciseToWorkout,
     removeExerciseFromWorkout,
   } = usePlayer();
+
+  /**
+   * Look up the most recent recorded weight for a given exercise.
+   * Searches workoutHistory newest-first and returns the first match.
+   */
+  const getLastWeight = useCallback((exerciseId) => {
+    for (const entry of workoutHistory) {
+      const found = entry.exercises?.find(e => e.id === exerciseId);
+      if (found && found.weight != null) return found.weight;
+    }
+    return null;
+  }, [workoutHistory]);
+
+  const weightUnit = settings?.weightUnit || 'kg';
 
   useKeepAwake();
   const [toasts, setToasts] = useState([]);
@@ -762,17 +862,25 @@ export default function WorkoutScreen({ navigation }) {
             <Text style={styles.noExercisesText}>No exercises — tap ADD to pick some</Text>
           </View>
         ) : (
-          activeWorkout.exercises.map((exercise, index) => (
-            <ExerciseRow
-              key={exercise.id}
-              exercise={exercise}
-              completedSets={activeWorkout.completedSets[exercise.id] || []}
-              totalSets={exercise.sets}
-              onCompleteSet={handleCompleteSet}
-              onRemove={handleRemoveExercise}
-              index={index}
-            />
-          ))
+          activeWorkout.exercises.map((exercise, index) => {
+            const lastWeight = getLastWeight(exercise.id);
+            const currentWeight = (activeWorkout.exerciseWeights || {})[exercise.id] ?? null;
+            return (
+              <ExerciseRow
+                key={exercise.id}
+                exercise={exercise}
+                completedSets={activeWorkout.completedSets[exercise.id] || []}
+                totalSets={exercise.sets}
+                onCompleteSet={handleCompleteSet}
+                onRemove={handleRemoveExercise}
+                onWeightChange={setExerciseWeight}
+                currentWeight={currentWeight}
+                lastWeight={lastWeight}
+                weightUnit={weightUnit}
+                index={index}
+              />
+            );
+          })
         )}
 
         {/* Stat XP Earned */}

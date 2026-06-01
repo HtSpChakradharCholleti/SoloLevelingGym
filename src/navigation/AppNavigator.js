@@ -45,20 +45,20 @@ function AnimatedTabButton({ children, onPress, onLongPress, style, accessibilit
   }));
 
   return (
-    <Animated.View style={[style, animStyle]}>
-      <TouchableOpacity
-        onPress={onPress}
-        onLongPress={onLongPress}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-        accessibilityRole={accessibilityRole}
-        accessibilityState={accessibilityState}
-        style={tabBtnStyles.inner}
-        activeOpacity={1}
-      >
+    <TouchableOpacity
+      onPress={onPress}
+      onLongPress={onLongPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      accessibilityRole={accessibilityRole}
+      accessibilityState={accessibilityState}
+      style={[style, { flex: 1 }]}
+      activeOpacity={1}
+    >
+      <Animated.View style={[tabBtnStyles.inner, animStyle]}>
         {children}
-      </TouchableOpacity>
-    </Animated.View>
+      </Animated.View>
+    </TouchableOpacity>
   );
 }
 

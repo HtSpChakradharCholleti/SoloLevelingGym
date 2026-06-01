@@ -57,11 +57,15 @@
         "expo-build-properties",
         {
           "android": {
-            "abiFilters": ["arm64-v8a"]
+            "buildArchs": [
+              "arm64-v8a"
+            ]
           }
         }
       ],
-      "./plugins/withNetworkSecurityConfig"
+      "./plugins/withNetworkSecurityConfig",
+      "./plugins/withAndroidSplits",
+      "expo-sharing"
     ]
   }
 }

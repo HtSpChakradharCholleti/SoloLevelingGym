@@ -13,6 +13,8 @@ import NotificationManager from '../utils/NotificationManager';
 import WeightLogModal from '../components/WeightLogModal';
 import { testOTAConnectivity, checkForOTAUpdate } from '../utils/otaDiagnostics';
 import { HotUpdater } from '@hot-updater/react-native';
+import XPRing from '../components/XPRing';
+import StatRadarChart from '../components/StatRadarChart';
 
 const { width } = Dimensions.get('window');
 
@@ -141,7 +143,7 @@ export default function HunterProfileScreen({ navigation }) {
         <View style={styles.headerContent}>
           {/* Avatar Area */}
           <View style={styles.avatarArea}>
-            <View style={[styles.avatarGlow, { shadowColor: rankColor }]}>
+            <XPRing progress={progress} rankColor={rankColor} size={100} style={{ marginBottom: SPACING.sm }}>
               <LinearGradient
                 colors={GRADIENTS[`rank${rank}`] || GRADIENTS.rankE}
                 style={styles.avatar}
@@ -150,7 +152,7 @@ export default function HunterProfileScreen({ navigation }) {
               >
                 <MaterialCommunityIcons name="sword-cross" size={40} color="#fff" />
               </LinearGradient>
-            </View>
+            </XPRing>
             <RankBadge rank={rank} size="small" showLabel={false} />
           </View>
 
@@ -194,7 +196,7 @@ export default function HunterProfileScreen({ navigation }) {
                   <Text style={styles.weightLogText}>LOG TODAY</Text>
                 </LinearGradient>
               </TouchableOpacity>
-              
+
               <TouchableOpacity
                 style={styles.weightHistoryBtn}
                 onPress={() => navigation.navigate('WeightHistory')}
@@ -314,6 +316,9 @@ export default function HunterProfileScreen({ navigation }) {
           <Text style={styles.statsPanelTitle}>HUNTER STATS</Text>
         </View>
 
+        {/* Dynamic Skia Spider/Radar Chart */}
+        <StatRadarChart stats={stats} maxValue={200} />
+
         <View style={styles.statsGrid}>
           {Object.entries(stats).map(([stat, value], i) => (
             <View key={stat} style={styles.statItem}>
@@ -339,7 +344,7 @@ export default function HunterProfileScreen({ navigation }) {
         </View>
 
         <View style={styles.notificationButtons}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.actionButton, { borderColor: COLORS.accent }]}
             onPress={async () => {
               await NotificationManager.scheduleTestNotification();
@@ -350,7 +355,7 @@ export default function HunterProfileScreen({ navigation }) {
             <Text style={[styles.actionButtonText, { color: COLORS.accent }]}>Test Notification</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.actionButton, { borderColor: COLORS.error }]}
             onPress={async () => {
               await NotificationManager.cancelAllNotifications();
@@ -424,6 +429,33 @@ export default function HunterProfileScreen({ navigation }) {
               thumbColor={settings?.hapticsEnabled ? COLORS.accent : COLORS.textMuted}
               ios_backgroundColor={COLORS.surfaceBorder}
             />
+          </View>
+
+          <View style={styles.settingDivider} />
+
+          <View style={styles.settingRow}>
+            <View style={styles.settingInfo}>
+              <MaterialCommunityIcons name="weight-kilogram" size={20} color={COLORS.accent} />
+              <View style={styles.settingTextWrap}>
+                <Text style={styles.settingLabel}>Weight Unit</Text>
+                <Text style={styles.settingDesc}>Used during workout logging</Text>
+              </View>
+            </View>
+            <View style={styles.unitToggle}>
+              {['kg', 'lbs'].map((unit) => {
+                const active = (settings?.weightUnit || 'kg') === unit;
+                return (
+                  <TouchableOpacity
+                    key={unit}
+                    style={[styles.unitBtn, active && styles.unitBtnActive]}
+                    onPress={() => updateSetting('weightUnit', unit)}
+                    activeOpacity={0.75}
+                  >
+                    <Text style={[styles.unitBtnText, active && styles.unitBtnTextActive]}>{unit}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
         </View>
       </SystemPanel>
@@ -516,9 +548,9 @@ export default function HunterProfileScreen({ navigation }) {
         </View>
       </SystemPanel>
 
-      <WeightLogModal 
-        visible={isWeightModalVisible} 
-        onClose={() => setIsWeightModalVisible(false)} 
+      <WeightLogModal
+        visible={isWeightModalVisible}
+        onClose={() => setIsWeightModalVisible(false)}
       />
     </ScrollView>
   );
@@ -820,6 +852,30 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: COLORS.surfaceBorder,
     marginHorizontal: SPACING.base,
+  },
+  unitToggle: {
+    flexDirection: 'row',
+    borderRadius: BORDER_RADIUS.sm,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceBorder,
+    overflow: 'hidden',
+  },
+  unitBtn: {
+    paddingHorizontal: SPACING.base,
+    paddingVertical: SPACING.xs,
+    backgroundColor: COLORS.surfaceLight,
+  },
+  unitBtnActive: {
+    backgroundColor: COLORS.accent,
+  },
+  unitBtnText: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.xs,
+    fontWeight: '700',
+    color: COLORS.textMuted,
+  },
+  unitBtnTextActive: {
+    color: COLORS.background,
   },
 
   // Weight Log Styles
