@@ -42,3 +42,4 @@ yarn-error.*
 # hot-updater
 .hot-updater/output
 publish-ota-update.yaml
+.idea

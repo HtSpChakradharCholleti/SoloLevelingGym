@@ -1,5 +1,5 @@
 // React & React Native
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, Dimensions, TouchableOpacity, Easing } from 'react-native';
 
 // Third-party
@@ -8,9 +8,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import PropTypes from 'prop-types';
 
 // App config & utilities
-import { COLORS, RANK_COLORS, FONTS, FONT_SIZES, SPACING, BORDER_RADIUS, SHADOWS, LETTER_SPACING, LINE_HEIGHTS } from '../theme';
+import { COLORS, STAT_COLORS, RANK_COLORS, FONTS, FONT_SIZES, SPACING, BORDER_RADIUS, SHADOWS, LETTER_SPACING, LINE_HEIGHTS } from '../theme';
 import { RANK_TITLES } from '../utils/leveling';
+import { getDungeonFromLastWeek } from '../utils/suggestions';
 import { usePlayer } from '../store/PlayerContext';
+import { navigationRef } from '../../App';
 
 // Components
 import RankBadge from './RankBadge';
@@ -25,8 +27,23 @@ const { width, height } = Dimensions.get('window');
  */
 
 const LevelUpOverlay = ({ data, onDismiss }) => {
-  const { settings } = usePlayer();
+  const { settings, workoutHistory } = usePlayer();
   const animationsEnabled = settings?.animationsEnabled ?? true;
+
+  // System pick: same weekday last week — gives the user a concrete "next move"
+  // suggestion right in the level-up moment.
+  const lastWeekPick = useMemo(
+    () => getDungeonFromLastWeek(workoutHistory || []),
+    [workoutHistory]
+  );
+
+  const handleGoToSuggestion = () => {
+    onDismiss();
+    if (navigationRef?.isReady?.()) {
+      navigationRef.navigate('Main', { screen: 'Dungeons' });
+    }
+  };
+
   const overlayOpacity = useRef(new Animated.Value(animationsEnabled ? 0 : 1)).current;
   const contentScale = useRef(new Animated.Value(animationsEnabled ? 0.9 : 1)).current;
   const contentOpacity = useRef(new Animated.Value(animationsEnabled ? 0 : 1)).current;
@@ -113,6 +130,41 @@ const LevelUpOverlay = ({ data, onDismiss }) => {
             </Animated.View>
           )}
 
+          {/* System-chosen dungeon — based on what the hunter trained on
+              this same weekday a week ago. Tapping deep-links to Dungeons. */}
+          {lastWeekPick?.dungeon && (
+            <Animated.View style={[styles.suggestionWrap, { opacity: textOpacity }]}>
+              <Text style={styles.suggestionLabel}>SYSTEM RECOMMENDS</Text>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={handleGoToSuggestion}
+                style={styles.suggestionCard}
+              >
+                <View style={[
+                  styles.suggestionIconWrap,
+                  { borderColor: (STAT_COLORS[lastWeekPick.dungeon.stat] || COLORS.accent) + '60' },
+                ]}>
+                  <MaterialCommunityIcons
+                    name={lastWeekPick.dungeon.icon}
+                    size={22}
+                    color={STAT_COLORS[lastWeekPick.dungeon.stat] || COLORS.accent}
+                  />
+                </View>
+                <View style={styles.suggestionInfo}>
+                  <Text style={styles.suggestionName}>{lastWeekPick.dungeon.name}</Text>
+                  <Text style={styles.suggestionSub}>
+                    {lastWeekPick.dungeon.splitLabel} • You trained this 7 days ago
+                  </Text>
+                </View>
+                <MaterialCommunityIcons
+                  name="chevron-right"
+                  size={20}
+                  color={COLORS.accent}
+                />
+              </TouchableOpacity>
+            </Animated.View>
+          )}
+
           <Animated.Text style={[styles.tapText, { opacity: textOpacity }]}>
             Tap anywhere to continue
           </Animated.Text>
@@ -196,6 +248,58 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
     marginTop: SPACING.xl,
     letterSpacing: 1,
+  },
+
+  // ── System recommendation card ─────────────────────────────────
+  suggestionWrap: {
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: SPACING.lg,
+  },
+  suggestionLabel: {
+    fontFamily: FONTS.heading,
+    fontSize: FONT_SIZES.xs,
+    fontWeight: '700',
+    color: COLORS.accent,
+    letterSpacing: 2.5,
+    marginBottom: SPACING.sm,
+  },
+  suggestionCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+    backgroundColor: COLORS.surface,
+    borderRadius: BORDER_RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.accent + '40',
+    paddingVertical: SPACING.sm + 2,
+    paddingHorizontal: SPACING.base,
+    minWidth: 260,
+  },
+  suggestionIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: BORDER_RADIUS.sm,
+    borderWidth: 1,
+    backgroundColor: COLORS.surfaceLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  suggestionInfo: {
+    flex: 1,
+  },
+  suggestionName: {
+    fontFamily: FONTS.heading,
+    fontSize: FONT_SIZES.base,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+  },
+  suggestionSub: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textMuted,
+    marginTop: 1,
+    letterSpacing: 0.5,
   },
 });
 

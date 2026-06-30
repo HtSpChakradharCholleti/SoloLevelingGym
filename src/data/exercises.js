@@ -145,6 +145,7 @@ export const EXERCISES = [
     repRange: '10–15 min',
     icon: 'walk',
     muscle: 'Cardiovascular',
+    cardio: true,
   },
 
   // ──────────────────────────────────────────────
@@ -187,6 +188,21 @@ export const EXERCISES = [
     muscle: 'Rear Delts',
   },
   {
+    // Reverse pec-deck / rear-delt fly — isolation work for the rear delts
+    // on pull day. Distinct id from any chest pec-fly (none exists yet, but
+    // keeps the namespace clean if one is added later).
+    id: 'rear_delt_pec_fly',
+    name: 'Pectoral Fly (Rear Delts)',
+    dungeonId: 'pull',
+    stat: 'PER',
+    baseXP: 16,
+    defaultSets: 3,
+    defaultReps: 12,
+    repRange: '10–14',
+    icon: 'dumbbell',
+    muscle: 'Rear Delts',
+  },
+  {
     id: 'bicep_curls',
     name: 'Dumbbell Bicep Curls',
     dungeonId: 'pull',
@@ -221,6 +237,7 @@ export const EXERCISES = [
     repRange: '10–15 min',
     icon: 'walk',
     muscle: 'Cardiovascular',
+    cardio: true,
   },
 
   // ──────────────────────────────────────────────
@@ -287,6 +304,21 @@ export const EXERCISES = [
     muscle: 'Calves',
   },
   {
+    // Machine shoulder press added to leg day for front-delt accessory work.
+    // Distinct id from the push-day 'machine_shoulder_press' so the two are
+    // tracked independently (last-weight lookup, suggestions, etc.).
+    id: 'machine_shoulder_press_legs',
+    name: 'Machine Shoulder Press',
+    dungeonId: 'legs',
+    stat: 'END',
+    baseXP: 20,
+    defaultSets: 3,
+    defaultReps: 9,
+    repRange: '8–10',
+    icon: 'dumbbell',
+    muscle: 'Front Delts',
+  },
+  {
     id: 'plank_legs',
     name: 'Plank',
     dungeonId: 'legs',
@@ -309,6 +341,7 @@ export const EXERCISES = [
     repRange: '10–15 min',
     icon: 'walk',
     muscle: 'Cardiovascular',
+    cardio: true,
   },
 
   // ──────────────────────────────────────────────
@@ -325,6 +358,7 @@ export const EXERCISES = [
     repRange: '10–15 min',
     icon: 'walk',
     muscle: 'Full Body',
+    cardio: true,
   },
   {
     id: 'hanging_knee_raises',
@@ -377,6 +411,7 @@ export const EXERCISES = [
     repRange: '10–15 min',
     icon: 'run-fast',
     muscle: 'Cardiovascular',
+    cardio: true,
   },
   {
     id: 'band_pull_aparts',

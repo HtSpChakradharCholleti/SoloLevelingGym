@@ -9,7 +9,7 @@ import { useKeepAwake } from 'expo-keep-awake';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
-  withSpring,
+
   withTiming,
   withSequence,
   withRepeat,
@@ -23,6 +23,7 @@ import { usePlayer } from '../store/PlayerContext';
 import { EXERCISES, DUNGEONS } from '../data/exercises';
 import SystemPanel from '../components/SystemPanel';
 import XPToast from '../components/XPToast';
+import SparkleBurst from '../components/SparkleBurst';
 import SoundManager from '../utils/SoundManager';
 import NotificationManager from '../utils/NotificationManager';
 
@@ -47,16 +48,77 @@ function AnimatedTimerDisplay({ sharedValue, style }) {
 }
 
 // ─── Set Button ──────────────────────────────────────────────────────────────
+// Tactile reward when a set is marked complete:
+//   1. Spring scale-pop (1 → 1.35 → 1) on the UI thread
+//   2. Animated check icon (fades + scales in)
+//   3. SparkleBurst overlay anchored to the button
 function SetButton({ index, completed, statColor, onPress }) {
+  const scale = useSharedValue(1);
+  const checkOpacity = useSharedValue(completed ? 1 : 0);
+  const checkScale = useSharedValue(completed ? 1 : 0.4);
+
+  // `burstKey` is bumped each time we transition into `completed` — the
+  // SparkleBurst component is fresh-mounted (via key prop) so its
+  // particle animation starts from t=0 every time.
+  const [burstKey, setBurstKey] = React.useState(0);
+  const wasCompletedRef = useRef(completed);
+
+  useEffect(() => {
+    if (completed && !wasCompletedRef.current) {
+      // false → true transition: quick pop + settle (no bounce)
+      scale.value = withSequence(
+        withTiming(1.15, { duration: 100, easing: Easing.out(Easing.quad) }),
+        withTiming(1, { duration: 120, easing: Easing.out(Easing.quad) })
+      );
+      checkOpacity.value = withTiming(1, { duration: 150 });
+      checkScale.value = withTiming(1, { duration: 150, easing: Easing.out(Easing.quad) });
+      setBurstKey(k => k + 1);
+    } else if (!completed && wasCompletedRef.current) {
+      checkOpacity.value = withTiming(0, { duration: 120 });
+      checkScale.value = withTiming(0.4, { duration: 120 });
+    }
+    wasCompletedRef.current = completed;
+  }, [completed]);
+
+  const wrapperStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const checkStyle = useAnimatedStyle(() => ({
+    opacity: checkOpacity.value,
+    transform: [{ scale: checkScale.value }],
+  }));
+
   return (
     <TouchableOpacity
       onPress={!completed ? onPress : undefined}
       disabled={completed}
       activeOpacity={0.7}
     >
-      <View style={[rowStyles.setBtn, completed && { backgroundColor: statColor, borderColor: statColor }]}>
-        <Text style={[rowStyles.setNum, completed && { color: COLORS.textPrimary }]}>{index + 1}</Text>
-      </View>
+      <Animated.View style={wrapperStyle}>
+        <View style={[rowStyles.setBtn, completed && { backgroundColor: statColor, borderColor: statColor }]}>
+          {/* Number — fades out as check fades in */}
+          {!completed && (
+            <Text style={rowStyles.setNum}>{index + 1}</Text>
+          )}
+          {/* Animated check overlay */}
+          <Animated.View style={[rowStyles.checkOverlay, checkStyle]}>
+            <MaterialCommunityIcons name="check-bold" size={16} color={COLORS.background} />
+          </Animated.View>
+          {/* Sparkle burst — keyed so it re-mounts and replays on each completion */}
+          {burstKey > 0 && (
+            <View pointerEvents="none" style={rowStyles.burstAnchor}>
+              <SparkleBurst
+                key={burstKey}
+                count={8}
+                radius={28}
+                duration={650}
+                colors={[statColor, COLORS.accent]}
+              />
+            </View>
+          )}
+        </View>
+      </Animated.View>
     </TouchableOpacity>
   );
 }
@@ -136,8 +198,126 @@ const weightStyles = StyleSheet.create({
   },
 });
 
+// ─── Treadmill Chip ──────────────────────────────────────────────────────────
+// Compact dual-input shown for cardio exercises (treadmill walks / incline
+// walks). Two inline numeric fields — speed (km/h) and incline (%) — saved
+// to the active workout on blur. Pre-fills from the most recent session
+// (passed via `lastSpeed` / `lastIncline`).
+function TreadmillChip({
+  exerciseId, statColor,
+  currentSpeed, currentIncline,
+  lastSpeed, lastIncline,
+  onParamsChange,
+}) {
+  const [speedDraft, setSpeedDraft] = useState(
+    currentSpeed != null ? String(currentSpeed) : ''
+  );
+  const [inclineDraft, setInclineDraft] = useState(
+    currentIncline != null ? String(currentIncline) : ''
+  );
+
+  // Reset when switching between exercises (keyed by exerciseId)
+  useEffect(() => {
+    setSpeedDraft(currentSpeed != null ? String(currentSpeed) : '');
+    setInclineDraft(currentIncline != null ? String(currentIncline) : '');
+  }, [exerciseId]);
+
+  const commit = (field, draft, setDraft, currentVal) => {
+    const trimmed = draft.trim();
+    if (trimmed === '') {
+      onParamsChange(exerciseId, { [field]: null });
+      return;
+    }
+    const parsed = parseFloat(trimmed);
+    if (!isNaN(parsed) && parsed >= 0) {
+      onParamsChange(exerciseId, { [field]: parsed });
+    } else {
+      // Invalid → revert
+      setDraft(currentVal != null ? String(currentVal) : '');
+    }
+  };
+
+  return (
+    <View style={treadmillStyles.row}>
+      {/* Speed */}
+      <View style={[treadmillStyles.chip, { borderColor: statColor + '55' }]}>
+        <MaterialCommunityIcons name="speedometer" size={12} color={statColor} />
+        <TextInput
+          style={[treadmillStyles.input, { color: speedDraft ? COLORS.textPrimary : COLORS.textMuted }]}
+          value={speedDraft}
+          onChangeText={setSpeedDraft}
+          onBlur={() => commit('speed', speedDraft, setSpeedDraft, currentSpeed)}
+          keyboardType="decimal-pad"
+          placeholder={lastSpeed != null ? String(lastSpeed) : '0'}
+          placeholderTextColor={COLORS.textMuted}
+          returnKeyType="done"
+          selectTextOnFocus
+          maxLength={4}
+        />
+        <Text style={[treadmillStyles.unit, { color: statColor }]}>km/h</Text>
+      </View>
+
+      {/* Incline */}
+      <View style={[treadmillStyles.chip, { borderColor: statColor + '55' }]}>
+        <MaterialCommunityIcons name="slope-uphill" size={12} color={statColor} />
+        <TextInput
+          style={[treadmillStyles.input, { color: inclineDraft ? COLORS.textPrimary : COLORS.textMuted }]}
+          value={inclineDraft}
+          onChangeText={setInclineDraft}
+          onBlur={() => commit('incline', inclineDraft, setInclineDraft, currentIncline)}
+          keyboardType="decimal-pad"
+          placeholder={lastIncline != null ? String(lastIncline) : '0'}
+          placeholderTextColor={COLORS.textMuted}
+          returnKeyType="done"
+          selectTextOnFocus
+          maxLength={4}
+        />
+        <Text style={[treadmillStyles.unit, { color: statColor }]}>%</Text>
+      </View>
+    </View>
+  );
+}
+
+const treadmillStyles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+    marginTop: SPACING.xs,
+    flexWrap: 'wrap',
+  },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderWidth: 1,
+    borderRadius: BORDER_RADIUS.sm,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 3,
+    backgroundColor: COLORS.surfaceLight,
+  },
+  input: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.xs,
+    fontWeight: '600',
+    minWidth: 28,
+    padding: 0,
+  },
+  unit: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.xs,
+    fontWeight: '600',
+  },
+});
+
 // ─── Inline ExerciseRow with remove button ────────────────────────────────────
-function ExerciseRow({ exercise, completedSets = [], totalSets, onCompleteSet, onRemove, onWeightChange, currentWeight, lastWeight, weightUnit, index }) {
+function ExerciseRow({
+  exercise, completedSets = [], totalSets,
+  onCompleteSet, onRemove,
+  onWeightChange, currentWeight, lastWeight, weightUnit,
+  onCardioChange, currentCardio, lastCardio,
+  index,
+}) {
   const statColor = STAT_COLORS[exercise.stat] || COLORS.primary;
   const completedCount = completedSets.filter(Boolean).length;
   const allDone = completedCount >= totalSets;
@@ -155,14 +335,26 @@ function ExerciseRow({ exercise, completedSets = [], totalSets, onCompleteSet, o
             {totalSets} sets × {exercise.repRange || `${exercise.reps} reps`} • +{exercise.baseXP} XP
           </Text>
           {exercise.muscle ? <Text style={rowStyles.muscle}>{exercise.muscle}</Text> : null}
-          <WeightChip
-            exerciseId={exercise.id}
-            statColor={statColor}
-            currentWeight={currentWeight}
-            lastWeight={lastWeight}
-            unit={weightUnit}
-            onWeightChange={onWeightChange}
-          />
+          {exercise.cardio ? (
+            <TreadmillChip
+              exerciseId={exercise.id}
+              statColor={statColor}
+              currentSpeed={currentCardio?.speed ?? null}
+              currentIncline={currentCardio?.incline ?? null}
+              lastSpeed={lastCardio?.speed ?? null}
+              lastIncline={lastCardio?.incline ?? null}
+              onParamsChange={onCardioChange}
+            />
+          ) : (
+            <WeightChip
+              exerciseId={exercise.id}
+              statColor={statColor}
+              currentWeight={currentWeight}
+              lastWeight={lastWeight}
+              unit={weightUnit}
+              onWeightChange={onWeightChange}
+            />
+          )}
         </View>
       </View>
 
@@ -234,6 +426,20 @@ const rowStyles = StyleSheet.create({
     borderColor: COLORS.surfaceBorder,
     alignItems: 'center', justifyContent: 'center',
     backgroundColor: COLORS.surfaceLight,
+    overflow: 'visible',
+  },
+  // Animated check icon sits centered, fades + scales in on completion
+  checkOverlay: {
+    position: 'absolute',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  // Sparkle anchor — full-bleed container so the burst centres on the button
+  burstAnchor: {
+    position: 'absolute',
+    left: 0, right: 0, top: 0, bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
     overflow: 'visible',
   },
   setBtnTouchArea: {
@@ -547,6 +753,7 @@ export default function WorkoutScreen({ navigation }) {
     settings,
     completeExerciseSet,
     setExerciseWeight,
+    setExerciseCardioParams,
     finishWorkout,
     cancelWorkout,
     addExerciseToWorkout,
@@ -565,10 +772,31 @@ export default function WorkoutScreen({ navigation }) {
     return null;
   }, [workoutHistory]);
 
+  /**
+   * Find the most recent recorded speed / incline for a cardio exercise.
+   * Returns an object so the two fields can be sourced from different
+   * sessions if necessary.
+   */
+  const getLastCardioParams = useCallback((exerciseId) => {
+    let speed = null;
+    let incline = null;
+    for (const entry of workoutHistory) {
+      const found = entry.exercises?.find(e => e.id === exerciseId);
+      if (!found) continue;
+      if (speed   == null && found.speed   != null) speed   = found.speed;
+      if (incline == null && found.incline != null) incline = found.incline;
+      if (speed != null && incline != null) break;
+    }
+    return { speed, incline };
+  }, [workoutHistory]);
+
   const weightUnit = settings?.weightUnit || 'kg';
 
   useKeepAwake();
   const [toasts, setToasts] = useState([]);
+  // Monotonic counter — avoids React key collisions if two sets are completed
+  // within the same millisecond
+  const toastIdRef = useRef(0);
   const [showAddModal, setShowAddModal] = useState(false);
   const [restDuration, setRestDuration] = useState(180); // 3 minutes default
   const [restRestartKey, setRestRestartKey] = useState(0);
@@ -663,7 +891,7 @@ export default function WorkoutScreen({ navigation }) {
     const exercise = activeWorkout.exercises.find(e => e.id === exerciseId);
     if (!exercise) return;
     completeExerciseSet(exerciseId, setIndex, exercise.baseXP, exercise.stat);
-    const toastId = Date.now();
+    const toastId = ++toastIdRef.current;
     setToasts(prev => [...prev, { id: toastId, amount: exercise.baseXP, stat: exercise.stat }]);
 
     // Restart rest timer — clear any existing, then bump restartKey to force useEffect re-run
@@ -865,6 +1093,8 @@ export default function WorkoutScreen({ navigation }) {
           activeWorkout.exercises.map((exercise, index) => {
             const lastWeight = getLastWeight(exercise.id);
             const currentWeight = (activeWorkout.exerciseWeights || {})[exercise.id] ?? null;
+            const currentCardio = (activeWorkout.exerciseCardioParams || {})[exercise.id] || null;
+            const lastCardio = exercise.cardio ? getLastCardioParams(exercise.id) : null;
             return (
               <ExerciseRow
                 key={exercise.id}
@@ -874,8 +1104,11 @@ export default function WorkoutScreen({ navigation }) {
                 onCompleteSet={handleCompleteSet}
                 onRemove={handleRemoveExercise}
                 onWeightChange={setExerciseWeight}
+                onCardioChange={setExerciseCardioParams}
                 currentWeight={currentWeight}
                 lastWeight={lastWeight}
+                currentCardio={currentCardio}
+                lastCardio={lastCardio}
                 weightUnit={weightUnit}
                 index={index}
               />

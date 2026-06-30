@@ -13,6 +13,8 @@ import * as SplashScreen from 'expo-splash-screen';
 import { PlayerProvider, usePlayer } from './src/store/PlayerContext';
 import AppNavigator from './src/navigation/AppNavigator';
 import LevelUpOverlay from './src/components/LevelUpOverlay';
+import WorkoutCompleteOverlay from './src/components/WorkoutCompleteOverlay';
+import StreakMilestoneOverlay from './src/components/StreakMilestoneOverlay';
 import { COLORS } from './src/theme';
 import SoundManager from './src/utils/SoundManager';
 import NotificationManager, { initNotifications } from './src/utils/NotificationManager';
@@ -44,7 +46,11 @@ function resolveScreenFromData(data) {
 SplashScreen.preventAutoHideAsync();
 
 function AppContent() {
-  const { showLevelUp, levelUpData, dismissLevelUp } = usePlayer();
+  const {
+    showLevelUp, levelUpData, dismissLevelUp,
+    workoutCompletionData, dismissWorkoutComplete,
+    streakMilestoneData, dismissStreakMilestone,
+  } = usePlayer();
 
   // Navigate to the screen encoded in a notification response
   const handleNotificationResponse = useCallback((response) => {
@@ -97,10 +103,23 @@ function AppContent() {
         <AppNavigator />
       </NavigationContainer>
 
-      {/* Level Up Overlay */}
-      {showLevelUp && levelUpData && (
+      {/* Reward overlays — gated so only one renders at a time.
+          Priority: LevelUp → StreakMilestone → WorkoutComplete.
+          Dismissing the top one reveals the next, so a workout that hits
+          a milestone AND a level-up chains naturally. */}
+      {showLevelUp && levelUpData ? (
         <LevelUpOverlay data={levelUpData} onDismiss={dismissLevelUp} />
-      )}
+      ) : streakMilestoneData ? (
+        <StreakMilestoneOverlay
+          data={streakMilestoneData}
+          onDismiss={dismissStreakMilestone}
+        />
+      ) : workoutCompletionData ? (
+        <WorkoutCompleteOverlay
+          data={workoutCompletionData}
+          onDismiss={dismissWorkoutComplete}
+        />
+      ) : null}
     </View>
   );
 }
@@ -113,21 +132,23 @@ function App() {
     Outfit_700Bold,
   });
 
+  // Guard so sound/notification init only runs once even though onLayout
+  // can fire multiple times.
+  const didInitRef = useRef(false);
+
   const onLayoutRootView = useCallback(async () => {
-    if (fontsLoaded) {
-      await SplashScreen.hideAsync();
-      SoundManager.init();
-      
-      // Initialize notifications
-      const initAppNotifications = async () => {
-        initNotifications();
-        const hasPermission = await NotificationManager.requestPermissions();
-        if (hasPermission) {
-          // Schedule all daily system reminders (Workout, Water, Meals)
-          await NotificationManager.scheduleAllReminders();
-        }
-      };
-      initAppNotifications();
+    if (!fontsLoaded || didInitRef.current) return;
+    didInitRef.current = true;
+
+    await SplashScreen.hideAsync();
+    SoundManager.init();
+
+    // Initialize notifications
+    initNotifications();
+    const hasPermission = await NotificationManager.requestPermissions();
+    if (hasPermission) {
+      // Schedule all daily system reminders (Workout, Water, Meals)
+      await NotificationManager.scheduleAllReminders();
     }
   }, [fontsLoaded]);
 

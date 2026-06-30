@@ -6,6 +6,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { storage } from './storage';
 import { processXPGain, getRankForLevel, getStatLevel } from '../utils/leveling';
 import { generateDailyQuests, shouldResetQuests, getTodayString } from '../utils/quests';
+import { matchedMilestone } from '../components/StreakMilestoneOverlay';
 import SoundManager from '../utils/SoundManager';
 
 const STORAGE_KEY = '@solo_leveling_gym';
@@ -82,6 +83,10 @@ const initialState = {
   levelUpData: null,
   xpToasts: [],
 
+  // Reward overlays (gated in App.js so they queue behind LevelUp)
+  workoutCompletionData: null,   // { xpEarned, duration, setsCompleted, totalSets, exerciseCount, statXPEarned }
+  streakMilestoneData:   null,   // { streak, milestone }
+
   // Settings
   settings: {
     animationsEnabled: true,
@@ -109,9 +114,12 @@ const ActionTypes = {
   REMOVE_EXERCISE_FROM_WORKOUT: 'REMOVE_EXERCISE_FROM_WORKOUT',
   COMPLETE_EXERCISE_SET: 'COMPLETE_EXERCISE_SET',
   SET_EXERCISE_WEIGHT: 'SET_EXERCISE_WEIGHT',
+  SET_EXERCISE_CARDIO_PARAMS: 'SET_EXERCISE_CARDIO_PARAMS',
   FINISH_WORKOUT: 'FINISH_WORKOUT',
   CANCEL_WORKOUT: 'CANCEL_WORKOUT',
   DISMISS_LEVEL_UP: 'DISMISS_LEVEL_UP',
+  DISMISS_WORKOUT_COMPLETE: 'DISMISS_WORKOUT_COMPLETE',
+  DISMISS_STREAK_MILESTONE: 'DISMISS_STREAK_MILESTONE',
   ADD_XP_TOAST: 'ADD_XP_TOAST',
   REMOVE_XP_TOAST: 'REMOVE_XP_TOAST',
   LOG_WEIGHT: 'LOG_WEIGHT',
@@ -193,6 +201,7 @@ function playerReducer(state, action) {
           startTime: Date.now(),
           completedSets: {},
           exerciseWeights: {},   // { [exerciseId]: number | null }
+          exerciseCardioParams: {}, // { [exerciseId]: { speed: number|null, incline: number|null } }
           xpEarned: 0,
           statXPEarned: {},
         },
@@ -209,6 +218,28 @@ function playerReducer(state, action) {
           exerciseWeights: {
             ...workout.exerciseWeights,
             [exerciseId]: weight,
+          },
+        },
+      };
+    }
+
+    case ActionTypes.SET_EXERCISE_CARDIO_PARAMS: {
+      const { exerciseId, speed, incline } = action.payload;
+      const workout = state.activeWorkout;
+      if (!workout) return state;
+      const prev = (workout.exerciseCardioParams || {})[exerciseId] || {};
+      return {
+        ...state,
+        activeWorkout: {
+          ...workout,
+          exerciseCardioParams: {
+            ...(workout.exerciseCardioParams || {}),
+            [exerciseId]: {
+              // Allow partial updates (just speed OR just incline) without
+              // clobbering the other field.
+              speed:   speed   !== undefined ? speed   : (prev.speed   ?? null),
+              incline: incline !== undefined ? incline : (prev.incline ?? null),
+            },
           },
         },
       };
@@ -297,14 +328,22 @@ function playerReducer(state, action) {
         startTime: workout.startTime,
         endTime: effectiveEndTime,
         duration: effectiveEndTime - workout.startTime,
-        exercises: workout.exercises.map(e => ({
-          id: e.id,
-          name: e.name,
-          completedSets: (workout.completedSets[e.id] || []).filter(Boolean).length,
-          totalSets: e.sets,
-          weight: (workout.exerciseWeights || {})[e.id] ?? null,
-          weightUnit: state.settings.weightUnit || 'kg',
-        })),
+        exercises: workout.exercises.map(e => {
+          const cardio = (workout.exerciseCardioParams || {})[e.id];
+          return {
+            id: e.id,
+            name: e.name,
+            completedSets: (workout.completedSets[e.id] || []).filter(Boolean).length,
+            totalSets: e.sets,
+            weight: (workout.exerciseWeights || {})[e.id] ?? null,
+            weightUnit: state.settings.weightUnit || 'kg',
+            // Treadmill / cardio params — present only when the exercise
+            // uses them, so weight exercises stay clean in history.
+            speed:   cardio?.speed   ?? null,
+            incline: cardio?.incline ?? null,
+            cardio: !!e.cardio,
+          };
+        }),
         xpEarned: workout.xpEarned,
         statXPEarned: workout.statXPEarned,
       };
@@ -317,6 +356,29 @@ function playerReducer(state, action) {
         bestStreak: Math.max(state.bestStreak, newStreak),
         lastWorkoutDate: today,
         workoutHistory: [historyEntry, ...state.workoutHistory].slice(0, 100),
+        // ── Reward overlays ─────────────────────────────────────────────
+        // Surface the just-finished workout so App.js can show a
+        // "Dungeon Cleared" celebration. Computed here (not in the thunk)
+        // so the values come straight from the reducer's authoritative
+        // numbers — no stale-closure risk.
+        workoutCompletionData: {
+          xpEarned: workout.xpEarned,
+          duration: historyEntry.duration,
+          setsCompleted: historyEntry.exercises.reduce(
+            (sum, e) => sum + (e.completedSets || 0), 0
+          ),
+          totalSets: historyEntry.exercises.reduce(
+            (sum, e) => sum + (e.totalSets || 0), 0
+          ),
+          exerciseCount: historyEntry.exercises.length,
+          statXPEarned: workout.statXPEarned,
+        },
+        // Only trigger the streak flame if THIS workout pushed the streak
+        // onto a milestone day (not on same-day re-finishes).
+        streakMilestoneData:
+          newStreak !== state.currentStreak && matchedMilestone(newStreak)
+            ? { streak: newStreak, milestone: newStreak }
+            : state.streakMilestoneData,
       };
     }
 
@@ -325,6 +387,12 @@ function playerReducer(state, action) {
 
     case ActionTypes.DISMISS_LEVEL_UP:
       return { ...state, showLevelUp: false, levelUpData: null };
+
+    case ActionTypes.DISMISS_WORKOUT_COMPLETE:
+      return { ...state, workoutCompletionData: null };
+
+    case ActionTypes.DISMISS_STREAK_MILESTONE:
+      return { ...state, streakMilestoneData: null };
 
     case ActionTypes.ADD_XP_TOAST:
       return {
@@ -341,10 +409,10 @@ function playerReducer(state, action) {
     case ActionTypes.LOG_WEIGHT: {
       const { weight, unit, date } = action.payload;
       const newEntry = { weight, unit, date };
-      
+
       const newHistory = [...(state.weightHistory || [])];
       const existingIdx = newHistory.findIndex(entry => entry.date === date);
-      
+
       if (existingIdx >= 0) {
         newHistory[existingIdx] = newEntry;
       } else {
@@ -473,6 +541,8 @@ export function PlayerProvider({ children }) {
     delete toSave.showLevelUp;
     delete toSave.levelUpData;
     delete toSave.xpToasts;
+    delete toSave.workoutCompletionData;
+    delete toSave.streakMilestoneData;
     return toSave;
   };
 
@@ -507,7 +577,22 @@ export function PlayerProvider({ children }) {
         gainStatXP(s, 20);
       });
     }
-  }, [gainXP, gainStatXP]);
+
+    // If completing this quest auto-completes the bonus (all non-bonus done),
+    // award the bonus reward too — otherwise the reducer silently flips the
+    // bonus to completed=true and the user never gets its XP.
+    const bonus = state.dailyQuests.find(q => q.isBonus);
+    if (bonus && !bonus.completed && bonus.id !== questId) {
+      const nonBonus = state.dailyQuests.filter(q => !q.isBonus);
+      const allDoneAfter = nonBonus.every(q => q.completed || q.id === questId);
+      if (allDoneAfter) {
+        gainXP(bonus.xpReward);
+        ['STR', 'VIT', 'AGI', 'END', 'INT', 'PER'].forEach(s => {
+          gainStatXP(s, 20);
+        });
+      }
+    }
+  }, [state.dailyQuests, gainXP, gainStatXP]);
 
   const startWorkout = useCallback((exercises) => {
     const formattedExercises = exercises.map(e => ({
@@ -518,6 +603,7 @@ export function PlayerProvider({ children }) {
       sets: e.defaultSets,
       reps: e.defaultReps,
       dungeonId: e.dungeonId,
+      cardio: !!e.cardio,
     }));
     SoundManager.playTap();
     dispatch({ type: ActionTypes.START_WORKOUT, payload: { exercises: formattedExercises } });
@@ -536,6 +622,7 @@ export function PlayerProvider({ children }) {
       muscle: exercise.muscle,
       icon: exercise.icon,
       dungeonId: exercise.dungeonId,
+      cardio: !!exercise.cardio,
     };
     SoundManager.playTap();
     dispatch({ type: ActionTypes.ADD_EXERCISE_TO_WORKOUT, payload: formatted });
@@ -561,6 +648,17 @@ export function PlayerProvider({ children }) {
     });
   }, []);
 
+  /**
+   * Update treadmill speed / incline for the active workout. Pass `undefined`
+   * for whichever field you don't want to overwrite (the reducer preserves it).
+   */
+  const setExerciseCardioParams = useCallback((exerciseId, { speed, incline } = {}) => {
+    dispatch({
+      type: ActionTypes.SET_EXERCISE_CARDIO_PARAMS,
+      payload: { exerciseId, speed, incline },
+    });
+  }, []);
+
   const finishWorkout = useCallback(() => {
     SoundManager.playQuestComplete();
     if (state.activeWorkout) {
@@ -582,6 +680,15 @@ export function PlayerProvider({ children }) {
   const dismissLevelUp = useCallback(() => {
     SoundManager.playTap();
     dispatch({ type: ActionTypes.DISMISS_LEVEL_UP });
+  }, []);
+
+  const dismissWorkoutComplete = useCallback(() => {
+    SoundManager.playTap();
+    dispatch({ type: ActionTypes.DISMISS_WORKOUT_COMPLETE });
+  }, []);
+
+  const dismissStreakMilestone = useCallback(() => {
+    dispatch({ type: ActionTypes.DISMISS_STREAK_MILESTONE });
   }, []);
 
   const setPlayerName = useCallback((name) => {
@@ -689,9 +796,12 @@ export function PlayerProvider({ children }) {
     removeExerciseFromWorkout,
     completeExerciseSet,
     setExerciseWeight,
+    setExerciseCardioParams,
     finishWorkout,
     cancelWorkout,
     dismissLevelUp,
+    dismissWorkoutComplete,
+    dismissStreakMilestone,
     setPlayerName,
     logWeight,
     logMeasurement,
@@ -701,7 +811,8 @@ export function PlayerProvider({ children }) {
     importData,
   }), [state, gainXP, gainStatXP, completeQuest, startWorkout,
     addExerciseToWorkout, removeExerciseFromWorkout, completeExerciseSet,
-    setExerciseWeight, finishWorkout, cancelWorkout, dismissLevelUp, setPlayerName,
+    setExerciseWeight, setExerciseCardioParams, finishWorkout, cancelWorkout,
+    dismissLevelUp, dismissWorkoutComplete, dismissStreakMilestone, setPlayerName,
     logWeight, logMeasurement, updateSetting, resetAll, exportData, importData]);
 
   return (

@@ -212,7 +212,7 @@ export default function HunterProfileScreen({ navigation }) {
       </LinearGradient>
 
       {/* Workout Time Stats */}
-      <SystemPanel glowColor={COLORS.success} style={{ marginHorizontal: SPACING.base, marginBottom: SPACING.base }}>
+      <SystemPanel glowColor={COLORS.success} style={{ marginHorizontal: SPACING.base, marginTop: SPACING.sectionGap, marginBottom: SPACING.sectionGap }}>
         <View style={styles.statsPanelHeader}>
           <MaterialCommunityIcons name="clock-outline" size={18} color={COLORS.success} />
           <Text style={[styles.statsPanelTitle, { color: COLORS.success }]}>WORKOUT TIME</Text>
@@ -356,14 +356,14 @@ export default function HunterProfileScreen({ navigation }) {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.actionButton, { borderColor: COLORS.error }]}
+            style={[styles.actionButton, { borderColor: COLORS.danger }]}
             onPress={async () => {
               await NotificationManager.cancelAllNotifications();
               Alert.alert("System Notification", "All scheduled notifications have been cleared.");
             }}
           >
-            <MaterialCommunityIcons name="bell-off" size={20} color={COLORS.error} />
-            <Text style={[styles.actionButtonText, { color: COLORS.error }]}>Clear All Reminders</Text>
+            <MaterialCommunityIcons name="bell-off" size={20} color={COLORS.danger} />
+            <Text style={[styles.actionButtonText, { color: COLORS.danger }]}>Clear All Reminders</Text>
           </TouchableOpacity>
         </View>
       </SystemPanel>

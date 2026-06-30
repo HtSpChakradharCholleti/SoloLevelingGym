@@ -293,7 +293,7 @@ export default function WeightLogModal({ visible, onClose }) {
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <View style={styles.modalContentWrapper}>
-            <View style={[styles.modalContent, SHADOWS.dark]}>
+            <View style={[styles.modalContent, SHADOWS.popover]}>
               <LinearGradient
                 colors={[COLORS.surface, COLORS.surfaceLight]}
                 style={styles.modalGradient}

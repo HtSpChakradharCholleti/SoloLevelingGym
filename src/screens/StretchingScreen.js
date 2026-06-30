@@ -60,6 +60,19 @@ export default function StretchingScreen({ navigation }) {
   const endTimeRef = useRef(null); // wall-clock timestamp when timer should end
   const isTimerActiveRef = useRef(false); // mirror of isTimerActive for AppState closure
   const isPausedRef = useRef(false);       // mirror of isPaused for AppState closure
+  const sessionStretchesRef = useRef([]);       // mirror for AppState closure
+  const currentStretchIndexRef = useRef(0);     // mirror for AppState closure
+
+  // ── Stretch-time accounting ─────────────────────────────────────────────
+  // `totalTimeElapsed` used to be incremented +1 per setInterval tick, but
+  // setInterval drifts on a busy JS thread (a 30s stretch typically ticked
+  // only ~27 times), and the final tick was lost in the `remaining <= 0`
+  // branch. We now credit the FULL intended duration on natural completion
+  // and a wall-clock amount on early skips. Rest phases are excluded.
+  const stretchStartedAtRef = useRef(null); // wall-clock when the current
+                                            // stretch phase began (null while
+                                            // resting or between phases)
+  const stretchAccumRef     = useRef(0);    // seconds credited so far
   const allStretches = getStretchesForDay(selectedDay);
 
   // Active session stretches (only selected ones)
@@ -93,6 +106,8 @@ export default function StretchingScreen({ navigation }) {
   // Keep refs in sync with state so AppState handler never reads stale closures
   useEffect(() => { isTimerActiveRef.current = isTimerActive; }, [isTimerActive]);
   useEffect(() => { isPausedRef.current = isPaused; }, [isPaused]);
+  useEffect(() => { sessionStretchesRef.current = sessionStretches; }, [sessionStretches]);
+  useEffect(() => { currentStretchIndexRef.current = currentStretchIndex; }, [currentStretchIndex]);
 
   // ── Background-resume correction ────────────────────────────────────────
   // When the app goes to background, JS timers freeze. On resume we must
@@ -118,7 +133,17 @@ export default function StretchingScreen({ navigation }) {
 
         const remaining = Math.round((endTimeRef.current - Date.now()) / 1000);
         if (remaining <= 0) {
-          // Timer expired while in background → alarm
+          // Timer expired while in background → alarm.
+          // Credit stretch time if we were in a stretch phase (not rest).
+          // stretchStartedAtRef is only non-null during active stretch
+          // phases, so it doubles as the "is this a stretch?" check.
+          if (stretchStartedAtRef.current != null) {
+            const cur = sessionStretchesRef.current[currentStretchIndexRef.current];
+            if (cur) {
+              stretchAccumRef.current += cur.duration;
+            }
+            stretchStartedAtRef.current = null;
+          }
           setTimeRemaining(0);
           setIsRinging(true);
           endTimeRef.current = null;
@@ -156,10 +181,26 @@ export default function StretchingScreen({ navigation }) {
         endTimeRef.current = Date.now() + timeRemaining * 1000;
       }
 
+      // Mark when this stretch phase began so we can credit partial time
+      // on early skip. Resting phases never set this ref → rest time is
+      // excluded from "Time Stretched".
+      if (!isResting && stretchStartedAtRef.current == null) {
+        stretchStartedAtRef.current = Date.now();
+      }
+
       timerRef.current = setInterval(() => {
         if (!endTimeRef.current) return;
         const remaining = Math.round((endTimeRef.current - Date.now()) / 1000);
         if (remaining <= 0) {
+          // Timer ran to completion naturally → credit the FULL intended
+          // duration of the stretch (not a tick-count, which drifts).
+          if (!isResting) {
+            const cur = sessionStretches[currentStretchIndex];
+            if (cur && stretchStartedAtRef.current != null) {
+              stretchAccumRef.current += cur.duration;
+              stretchStartedAtRef.current = null;
+            }
+          }
           clearInterval(timerRef.current);
           timerRef.current = null;
           endTimeRef.current = null;
@@ -173,7 +214,6 @@ export default function StretchingScreen({ navigation }) {
           SoundManager.playTimerTick();
           if (hapticsEnabled) Vibration.vibrate(100);
         }
-        setTotalTimeElapsed((prev) => prev + 1);
       }, 1000);
     }
     return () => {
@@ -182,7 +222,7 @@ export default function StretchingScreen({ navigation }) {
         timerRef.current = null;
       }
     };
-  }, [isTimerActive, isPaused, timeRemaining, currentStretchIndex, currentSide, isResting]);
+  }, [isTimerActive, isPaused, timeRemaining, currentStretchIndex, currentSide, isResting, sessionStretches]);
 
   const handleTimerComplete = useCallback(() => {
     if (hapticsEnabled) Vibration.vibrate(300);
@@ -191,6 +231,7 @@ export default function StretchingScreen({ navigation }) {
     // If user manually played a single stretch, stop here — don't continue the sequence
     if (isSingleModeRef.current) {
       setIsTimerActive(false);
+      setTotalTimeElapsed(stretchAccumRef.current);
       setIsComplete(true);
       if (hapticsEnabled) Vibration.vibrate([0, 200, 100, 200, 100, 400]);
       return;
@@ -223,6 +264,7 @@ export default function StretchingScreen({ navigation }) {
     if (nextIndex >= sessionStretches.length) {
       // All done!
       setIsTimerActive(false);
+      setTotalTimeElapsed(stretchAccumRef.current);
       setIsComplete(true);
       if (hapticsEnabled) Vibration.vibrate([0, 200, 100, 200, 100, 400]);
       return;
@@ -273,6 +315,8 @@ export default function StretchingScreen({ navigation }) {
     setCurrentStretchIndex(0);
     setIsComplete(false);
     setTotalTimeElapsed(0);
+    stretchAccumRef.current = 0;
+    stretchStartedAtRef.current = null; // timer effect will set this
     const firstStretch = selected[0];
     if (firstStretch.sides) {
       setCurrentSide('left');
@@ -298,6 +342,8 @@ export default function StretchingScreen({ navigation }) {
     setCurrentStretchIndex(0);
     setIsComplete(false);
     setTotalTimeElapsed(0);
+    stretchAccumRef.current = 0;
+    stretchStartedAtRef.current = null;
     if (stretch.sides) {
       setCurrentSide('left');
     } else {
@@ -336,6 +382,16 @@ export default function StretchingScreen({ navigation }) {
     SoundManager.stopTimerComplete();
     NotificationManager.cancelTimerNotification(); // Cancel pending notification
 
+    // If we're skipping out of an active stretch (not rest), credit the
+    // partial wall-clock time before transitioning away.
+    if (!isResting && stretchStartedAtRef.current != null) {
+      const cur = sessionStretches[currentStretchIndex];
+      const partial = Math.round((Date.now() - stretchStartedAtRef.current) / 1000);
+      const capped = Math.max(0, Math.min(partial, cur ? cur.duration : partial));
+      stretchAccumRef.current += capped;
+      stretchStartedAtRef.current = null;
+    }
+
     if (isResting) {
       setIsResting(false);
       const nextStretch = sessionStretches[currentStretchIndex];
@@ -360,6 +416,7 @@ export default function StretchingScreen({ navigation }) {
     const nextIndex = currentStretchIndex + 1;
     if (nextIndex >= sessionStretches.length) {
       setIsTimerActive(false);
+      setTotalTimeElapsed(stretchAccumRef.current);
       setIsComplete(true);
       SoundManager.playTimerComplete();
       return;
@@ -384,6 +441,8 @@ export default function StretchingScreen({ navigation }) {
     setCurrentSide(null);
     setIsResting(false);
     setTimeRemaining(0);
+    stretchAccumRef.current = 0;
+    stretchStartedAtRef.current = null;
   };
 
   const resetSession = () => {
@@ -1226,7 +1285,7 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     marginTop: SPACING.xs,
   },
-  
+
   // ─── Dismiss Alarm Button ───────────────
   dismissAlarmBtn: {
     width: '100%',

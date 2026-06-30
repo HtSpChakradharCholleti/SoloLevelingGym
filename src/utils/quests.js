@@ -45,10 +45,23 @@ const seededRandom = (seed) => {
 };
 
 /**
+ * Format a Date as YYYY-MM-DD in the device's LOCAL timezone.
+ * Using toISOString() would shift the date for users east/west of UTC
+ * (e.g. JST morning workouts logged as "yesterday"), corrupting streaks
+ * and quest resets.
+ */
+const toLocalDateString = (d) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+
+/**
  * Generate daily quests - same quests for the same day (seeded by date)
  */
 export const generateDailyQuests = (date = new Date()) => {
-  const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD
+  const dateStr = toLocalDateString(date); // YYYY-MM-DD (local)
   const seed = seededRandom(dateStr);
 
   // Pick 4 quests from different stats
@@ -102,13 +115,10 @@ export const generateDailyQuests = (date = new Date()) => {
  */
 export const shouldResetQuests = (lastQuestDate) => {
   if (!lastQuestDate) return true;
-  const today = new Date().toISOString().split('T')[0];
-  return lastQuestDate !== today;
+  return lastQuestDate !== toLocalDateString(new Date());
 };
 
 /**
- * Get today's date string
+ * Get today's date string in the device's LOCAL timezone (YYYY-MM-DD).
  */
-export const getTodayString = () => {
-  return new Date().toISOString().split('T')[0];
-};
+export const getTodayString = () => toLocalDateString(new Date());

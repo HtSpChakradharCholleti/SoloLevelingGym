@@ -5,6 +5,61 @@
 import { DUNGEONS, PPL_ROTATION } from '../data/exercises';
 
 /**
+ * Format a Date as YYYY-MM-DD in the device's local timezone.
+ * Mirrors `toLocalDateString` in quests.js — duplicated here to avoid
+ * a circular import path.
+ */
+const localDateString = (d) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+
+/**
+ * Look up the dungeon the player trained on the **same weekday one week ago**
+ * (i.e. today minus 7 days). Used by the Level Up overlay to suggest
+ * "what you did this day last week".
+ *
+ * @param {Array} workoutHistory - Newest-first workout entries
+ * @returns {{ dungeon: Object|null, date: string|null }}
+ *   The matched dungeon and the date string, or { dungeon: null } if none.
+ */
+export function getDungeonFromLastWeek(workoutHistory = []) {
+  if (!workoutHistory || workoutHistory.length === 0) {
+    return { dungeon: null, date: null };
+  }
+
+  // Compute the date string for "7 days ago" in local time.
+  const target = new Date();
+  target.setHours(0, 0, 0, 0);
+  target.setDate(target.getDate() - 7);
+  const targetDateStr = localDateString(target);
+
+  const statToDungeon = {};
+  DUNGEONS.forEach(d => { statToDungeon[d.stat] = d.id; });
+
+  // Find the entry from exactly that date (history may have multiple — pick the
+  // one with the most XP earned that day, which is likely the main session).
+  const matches = workoutHistory.filter(e => e.date === targetDateStr);
+  if (matches.length === 0) return { dungeon: null, date: targetDateStr };
+
+  const top = matches.reduce(
+    (best, entry) =>
+      (entry.xpEarned || 0) > (best.xpEarned || 0) ? entry : best,
+    matches[0]
+  );
+
+  const primary = Object.entries(top.statXPEarned || {})
+    .sort((a, b) => b[1] - a[1])[0];
+  if (!primary) return { dungeon: null, date: targetDateStr };
+
+  const dungeonId = statToDungeon[primary[0]];
+  const dungeon = DUNGEONS.find(d => d.id === dungeonId) || null;
+  return { dungeon, date: targetDateStr };
+}
+
+/**
  * Maps dungeon IDs to their PPL split category.
  */
 const DUNGEON_SPLIT_MAP = {

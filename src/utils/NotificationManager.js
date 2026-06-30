@@ -29,35 +29,28 @@ class NotificationManager {
       const { status } = await Notifications.requestPermissionsAsync();
       finalStatus = status;
     }
-    
+
     if (finalStatus === 'granted' && Platform.OS === 'android') {
       await Notifications.setNotificationChannelAsync('system_alerts', {
         name: 'System Alerts',
         importance: Notifications.AndroidImportance.MAX,
         vibrationPattern: [0, 250, 250, 250],
         lightColor: '#FF231F7C',
-        sound: 'notif', 
+        sound: 'notif',
       });
     }
-    
+
     return finalStatus === 'granted';
   }
 
   static async scheduleDailyNotification(title, body, hour, minute, data = {}) {
-    const now = new Date();
-    const triggerDate = new Date();
-    triggerDate.setHours(hour, minute, 0, 0);
-    
-    if (triggerDate <= now) {
-      triggerDate.setDate(triggerDate.getDate() + 1);
-    }
-    
-    const secondsUntil = Math.max(1, Math.floor((triggerDate.getTime() - now.getTime()) / 1000));
-    
+    // DAILY trigger — repeats every day at the given local hour/minute.
+    // Previously we used a one-shot timeInterval, which only fired once and
+    // required the user to re-open the app every day to re-arm.
     const trigger = {
-      type: 'timeInterval', // Explicitly set type to avoid "invalid trigger" error
-      seconds: secondsUntil,
-      repeats: false,
+      type: Notifications.SchedulableTriggerInputTypes?.DAILY ?? 'daily',
+      hour,
+      minute,
       channelId: 'system_alerts',
     };
 
@@ -146,7 +139,7 @@ class NotificationManager {
       18, 30,
       { type: 'walking' }
     );
-    
+
     console.log("All system reminders scheduled.");
   }
 
@@ -184,7 +177,12 @@ class NotificationManager {
           title: `⏱️ ${label} Complete!`,
           body: 'Time is up! Tap to return to your session.',
           sound: Platform.OS === 'ios' ? 'notif.wav' : 'notif',
-          data: { screen: label === 'Stretch' ? 'Stretching' : 'Workout' },
+          // This method is only used by the stretch timer — always deep-link
+          // back to the Stretching screen. Previously this compared `label`
+          // against the literal 'Stretch', but callers pass the stretch's
+          // display name (e.g. "Cobra Stretch"), so the check always fell
+          // through to 'Workout'.
+          data: { screen: 'Stretching' },
           android: {
             channelId: 'system_alerts',
           },

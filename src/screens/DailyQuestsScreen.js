@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -11,6 +11,8 @@ import XPToast from '../components/XPToast';
 export default function DailyQuestsScreen() {
   const { dailyQuests, completeQuest } = usePlayer();
   const [toasts, setToasts] = useState([]);
+  // Monotonic counter — Date.now() can collide if two toasts fire in the same ms
+  const toastIdRef = useRef(0);
 
   const completedCount = dailyQuests.filter(q => q.completed && !q.isBonus).length;
   const totalCount = dailyQuests.filter(q => !q.isBonus).length;
@@ -21,7 +23,7 @@ export default function DailyQuestsScreen() {
     completeQuest(quest.id, quest.xpReward, quest.stat);
 
     // Show toast
-    const toastId = Date.now();
+    const toastId = ++toastIdRef.current;
     setToasts(prev => [...prev, { id: toastId, amount: quest.xpReward, stat: quest.stat }]);
   };
 

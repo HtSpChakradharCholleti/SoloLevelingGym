@@ -587,13 +587,26 @@ export default function HistoryScreen() {
 
       {/* Exercises */}
       <View style={styles.exercisesList}>
-        {entry.exercises.map((ex, i) => (
-          <View key={i} style={styles.exerciseTag}>
-            <Text style={styles.exerciseTagText}>
-              {ex.name} ({ex.completedSets}/{ex.totalSets})
-            </Text>
-          </View>
-        ))}
+        {entry.exercises.map((ex, i) => {
+          // Cardio sessions log speed / incline instead of weight — surface
+          // the most informative metric on the chip so the history is glanceable.
+          const isCardio = ex.cardio || ex.speed != null || ex.incline != null;
+          let label;
+          if (isCardio) {
+            const parts = [];
+            if (ex.speed != null) parts.push(`${ex.speed} km/h`);
+            if (ex.incline != null) parts.push(`${ex.incline}%`);
+            const detail = parts.length > 0 ? ` · ${parts.join(' · ')}` : '';
+            label = `${ex.name} (${ex.completedSets}/${ex.totalSets})${detail}`;
+          } else {
+            label = `${ex.name} (${ex.completedSets}/${ex.totalSets})`;
+          }
+          return (
+            <View key={i} style={styles.exerciseTag}>
+              <Text style={styles.exerciseTagText}>{label}</Text>
+            </View>
+          );
+        })}
       </View>
 
       {/* XP Footer */}
@@ -611,7 +624,7 @@ export default function HistoryScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* Header */}
-      <SystemPanel glowColor={COLORS.shadowViolet ? '#6b3fa0' : COLORS.accent}>
+      <SystemPanel glowColor="#6b3fa0">
         <View style={styles.header}>
           <MaterialCommunityIcons name="ghost" size={22} color="#6b3fa0" />
           <Text style={styles.headerTitle}>SHADOW ARMY</Text>
