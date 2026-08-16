@@ -3,6 +3,7 @@ import { View, Text, ScrollView, StyleSheet, Dimensions, TouchableOpacity, Alert
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, withDelay, Easing } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { COLORS, STAT_COLORS, STAT_LABELS, STAT_DESCRIPTIONS, RANK_COLORS, FONTS, FONT_SIZES, SPACING, BORDER_RADIUS, SHADOWS, GRADIENTS } from '../theme';
 import { usePlayer } from '../store/PlayerContext';
 import { getRequiredXP, getLevelProgress, getStatLevel, getStatProgress, RANK_TITLES } from '../utils/leveling';
@@ -18,7 +19,8 @@ import StatRadarChart from '../components/StatRadarChart';
 
 const { width } = Dimensions.get('window');
 
-export default function HunterProfileScreen({ navigation }) {
+export default function HunterProfileScreen() {
+  const router = useRouter();
   const {
     playerName, level, xp, rank, stats,
     totalWorkouts, currentStreak, bestStreak, weightHistory, measurementsHistory,
@@ -199,7 +201,7 @@ export default function HunterProfileScreen({ navigation }) {
 
               <TouchableOpacity
                 style={styles.weightHistoryBtn}
-                onPress={() => navigation.navigate('WeightHistory')}
+                onPress={() => router.push('/weight-history')}
               >
                 <View style={styles.weightHistoryBtnInner}>
                   <MaterialCommunityIcons name="history" size={18} color={COLORS.textSecondary} />

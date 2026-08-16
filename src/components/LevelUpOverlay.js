@@ -12,7 +12,7 @@ import { COLORS, STAT_COLORS, RANK_COLORS, FONTS, FONT_SIZES, SPACING, BORDER_RA
 import { RANK_TITLES } from '../utils/leveling';
 import { getDungeonFromLastWeek } from '../utils/suggestions';
 import { usePlayer } from '../store/PlayerContext';
-import { navigationRef } from '../../App';
+import { useRouter } from 'expo-router';
 
 // Components
 import RankBadge from './RankBadge';
@@ -27,6 +27,7 @@ const { width, height } = Dimensions.get('window');
  */
 
 const LevelUpOverlay = ({ data, onDismiss }) => {
+  const router = useRouter();
   const { settings, workoutHistory } = usePlayer();
   const animationsEnabled = settings?.animationsEnabled ?? true;
 
@@ -39,9 +40,7 @@ const LevelUpOverlay = ({ data, onDismiss }) => {
 
   const handleGoToSuggestion = () => {
     onDismiss();
-    if (navigationRef?.isReady?.()) {
-      navigationRef.navigate('Main', { screen: 'Dungeons' });
-    }
+    router.push('/(tabs)/dungeons');
   };
 
   const overlayOpacity = useRef(new Animated.Value(animationsEnabled ? 0 : 1)).current;

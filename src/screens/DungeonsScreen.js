@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { View, Text, ScrollView, FlatList, StyleSheet, TouchableOpacity, Modal } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { COLORS, STAT_COLORS, RANK_COLORS, FONTS, FONT_SIZES, SPACING, BORDER_RADIUS, LETTER_SPACING, LINE_HEIGHTS } from '../theme';
 import { DUNGEONS, getExercisesForDungeon } from '../data/exercises';
 import { usePlayer } from '../store/PlayerContext';
@@ -10,7 +11,8 @@ import DungeonCard from '../components/DungeonCard';
 import SystemPanel from '../components/SystemPanel';
 import SoundManager from '../utils/SoundManager';
 
-export default function DungeonsScreen({ navigation }) {
+export default function DungeonsScreen() {
+  const router = useRouter();
   const { startWorkout, workoutHistory, stats } = usePlayer();
   const [selectedDungeon, setSelectedDungeon] = useState(null);
   const [selectedExercises, setSelectedExercises] = useState([]);
@@ -46,7 +48,7 @@ export default function DungeonsScreen({ navigation }) {
     SoundManager.playDungeonEnter();
     startWorkout(exercises);
     closeDungeon();
-    navigation.navigate('Workout');
+    router.push('/(tabs)/workout');
   };
 
   return (
@@ -133,7 +135,7 @@ export default function DungeonsScreen({ navigation }) {
         {/* Stretching Entry Point */}
         <TouchableOpacity
           style={styles.stretchEntry}
-          onPress={() => navigation.navigate('Stretching')}
+          onPress={() => router.push('/stretching')}
           activeOpacity={0.8}
         >
           <LinearGradient

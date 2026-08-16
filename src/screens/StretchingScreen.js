@@ -12,6 +12,7 @@ import {
 import { useKeepAwake } from 'expo-keep-awake';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import Svg, { Circle as SvgCircle, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
 import Animated, {
   useSharedValue,
@@ -38,7 +39,8 @@ const CIRCLE_STROKE = 6;
 
 const REST_BETWEEN_STRETCHES = 5; // seconds
 
-export default function StretchingScreen({ navigation }) {
+export default function StretchingScreen() {
+  const router = useRouter();
   useKeepAwake(); // Prevent screen from sleeping during stretching
   const { settings } = usePlayer();
   const animationsEnabled = settings?.animationsEnabled ?? true;
@@ -511,7 +513,7 @@ export default function StretchingScreen({ navigation }) {
 
               <TouchableOpacity
                 style={styles.backButton}
-                onPress={() => navigation.goBack()}
+                onPress={() => router.back()}
               >
                 <Text style={styles.backText}>Back to Dungeons</Text>
               </TouchableOpacity>

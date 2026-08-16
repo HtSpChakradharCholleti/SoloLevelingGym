@@ -6,6 +6,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useKeepAwake } from 'expo-keep-awake';
+import { useRouter } from 'expo-router';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -694,7 +695,8 @@ const addStyles = StyleSheet.create({
 
 
 // ─── Empty Workout State — floating sword icon ────────────────────────────────
-function EmptyWorkoutState({ navigation }) {
+function EmptyWorkoutState() {
+  const router = useRouter();
   const floatY = useSharedValue(0);
 
   useEffect(() => {
@@ -726,7 +728,7 @@ function EmptyWorkoutState({ navigation }) {
       <Text style={styles.emptySubtitle}>Select a dungeon to start your training</Text>
       <TouchableOpacity
         style={styles.goButton}
-        onPress={() => navigation.navigate('Dungeons')}
+        onPress={() => router.push('/(tabs)/dungeons')}
         activeOpacity={0.85}
       >
         <LinearGradient
@@ -742,7 +744,8 @@ function EmptyWorkoutState({ navigation }) {
 }
 
 // ─── Main WorkoutScreen ───────────────────────────────────────────────────────
-export default function WorkoutScreen({ navigation }) {
+export default function WorkoutScreen() {
+  const router = useRouter();
   // Opt out of React Compiler — beta hoists activeWorkout.exercises past the
   // null guard below, crashing on initial render when no workout is active.
   'use no memo';
@@ -939,7 +942,7 @@ export default function WorkoutScreen({ navigation }) {
     setIsResting(false);
     NotificationManager.cancelRestNotification();
     finishWorkout();
-    navigation.navigate('Profile');
+    router.push('/(tabs)/profile');
   };
 
   const handleCancel = () => {
@@ -961,7 +964,7 @@ export default function WorkoutScreen({ navigation }) {
             setIsResting(false);
             NotificationManager.cancelRestNotification();
             cancelWorkout();
-            navigation.navigate('Dungeons');
+            router.push('/(tabs)/dungeons');
           },
         },
       ]
@@ -970,7 +973,7 @@ export default function WorkoutScreen({ navigation }) {
 
   // No active workout
   if (!activeWorkout) {
-    return <EmptyWorkoutState navigation={navigation} />;
+    return <EmptyWorkoutState />;
   }
 
   const totalSetsCompleted = Object.values(activeWorkout.completedSets || {})
@@ -1144,7 +1147,7 @@ export default function WorkoutScreen({ navigation }) {
 
           <TouchableOpacity
             style={styles.stretchButton}
-            onPress={() => navigation.navigate('Stretching')}
+            onPress={() => router.push('/stretching')}
           >
             <View style={styles.stretchButtonInner}>
               <MaterialCommunityIcons name="yoga" size={18} color={COLORS.accent} />

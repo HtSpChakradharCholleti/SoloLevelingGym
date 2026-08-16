@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { COLORS, FONTS, FONT_SIZES, SPACING, BORDER_RADIUS, SHADOWS } from '../theme';
 import { usePlayer } from '../store/PlayerContext';
@@ -40,7 +41,8 @@ function formatDate(dateStr) {
   });
 }
 
-export default function WeightHistoryScreen({ navigation }) {
+export default function WeightHistoryScreen() {
+  const router = useRouter();
   const { weightHistory, measurementsHistory, settings } = usePlayer();
   const [activeTab, setActiveTab] = useState(TAB_WEIGHT);
   const animationsEnabled = settings?.animationsEnabled ?? true;
@@ -218,7 +220,7 @@ export default function WeightHistoryScreen({ navigation }) {
 
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => navigation.goBack()}
+          onPress={() => router.back()}
         >
           <LinearGradient
             colors={[COLORS.surfaceLight, COLORS.surface]}
