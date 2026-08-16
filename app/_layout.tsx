@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useRef } from 'react';
-import { View, StyleSheet } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { View, StyleSheet, Text } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import {
@@ -18,6 +18,7 @@ import SoundManager from '../src/utils/SoundManager';
 import NotificationManager, { initNotifications } from '../src/utils/NotificationManager';
 import Overlays from '../src/components/navigation/Overlays';
 import withHotUpdater from '../src/utils/withHotUpdater';
+import { migrateDatabase, migrateHistoryFromMMKV, getMigrationStatus } from '../src/db';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -77,6 +78,34 @@ function useNotificationRouting() {
   }, [handleNotificationResponse]);
 }
 
+// TODO(v1.3.1): Remove MigrationDebugOverlay and all migration status UI.
+function MigrationDebugOverlay() {
+  const status = getMigrationStatus();
+
+  let statusColor = '#F59E0B'; // pending/unknown = amber
+  if (status.succeeded) statusColor = '#22C55E'; // green
+  else if (status.attempted && !status.succeeded) statusColor = '#EF4444'; // red
+
+  return (
+    <View style={migrationStyles.container} pointerEvents="none">
+      <Text style={[migrationStyles.text, { color: statusColor }]}>
+        MIGRATION: {status.succeeded ? 'OK' : status.attempted ? 'FAILED' : 'PENDING'}
+      </Text>
+      {status.succeededAt && (
+        <Text style={migrationStyles.subtext}>at {status.succeededAt}</Text>
+      )}
+      {status.errorMessage && (
+        <Text style={migrationStyles.subtext} numberOfLines={2}>
+          ERR: {status.errorMessage}
+        </Text>
+      )}
+      <Text style={migrationStyles.subtext}>
+        W:{status.weightEntriesMigrated} S:{status.workoutSessionsMigrated}
+      </Text>
+    </View>
+  );
+}
+
 function RootLayoutContent() {
   const [fontsLoaded] = useFonts({
     Outfit_400Regular,
@@ -92,6 +121,13 @@ function RootLayoutContent() {
   const onLayout = useCallback(async () => {
     if (!fontsLoaded || didInitRef.current) return;
     didInitRef.current = true;
+
+    try {
+      await migrateDatabase();
+      await migrateHistoryFromMMKV();
+    } catch (e) {
+      console.error('Database migration failed:', e);
+    }
 
     await SplashScreen.hideAsync();
     SoundManager.init();
@@ -110,6 +146,7 @@ function RootLayoutContent() {
   return (
     <View style={styles.container} onLayout={onLayout}>
       <StatusBar style="light" />
+      <MigrationDebugOverlay />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen
@@ -158,6 +195,30 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+  },
+});
+
+// TODO(v1.3.1): Remove MigrationDebugOverlay styles.
+const migrationStyles = StyleSheet.create({
+  container: {
+    position: 'absolute',
+    top: 48,
+    right: 8,
+    zIndex: 9999,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    borderRadius: 4,
+    alignItems: 'flex-end',
+  },
+  text: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  subtext: {
+    fontSize: 8,
+    color: '#FFFFFF',
+    marginTop: 1,
   },
 });
 
