@@ -72,6 +72,9 @@ const tabIcons: Record<string, [string, string]> = {
 export default function TabLayout() {
   return (
     <Tabs
+      sceneContainerStyle={{
+        backgroundColor: COLORS.background,
+      }}
       screenOptions={({ route }) => ({
         headerStyle: {
           backgroundColor: COLORS.background,
