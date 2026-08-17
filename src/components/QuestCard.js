@@ -3,7 +3,7 @@ import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 
 // Third-party
-import Animated, { FadeInLeft, Layout, useSharedValue, useAnimatedStyle, withSpring, withTiming, withRepeat, interpolateColor } from 'react-native-reanimated';
+import Animated, { FadeInLeft, Layout, useSharedValue, useAnimatedStyle, withTiming, withRepeat, interpolateColor } from 'react-native-reanimated';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import PropTypes from 'prop-types';
 
@@ -23,7 +23,6 @@ const QuestCard = ({ quest, onComplete, index = 0 }) => {
   const statColor = quest.stat === 'ALL' ? COLORS.warning : STAT_COLORS[quest.stat] || COLORS.primary;
   const { settings } = usePlayer();
   const animationsEnabled = settings?.animationsEnabled ?? true;
-  const scale = useSharedValue(1);
   const glowOpacity = useSharedValue(0.2);
 
   React.useEffect(() => {
@@ -35,8 +34,7 @@ const QuestCard = ({ quest, onComplete, index = 0 }) => {
     );
   }, [animationsEnabled]);
 
-  const animatedStyle = useAnimatedStyle(() => ({ 
-    transform: [{ scale: scale.value }],
+  const animatedStyle = useAnimatedStyle(() => ({
     borderColor: interpolateColor(
       glowOpacity.value,
       [0.2, 0.5],
@@ -54,14 +52,8 @@ const QuestCard = ({ quest, onComplete, index = 0 }) => {
         <Pressable
           onPress={() => {
             if (quest.completed) return;
-            // Spring pop micro-interaction — immediate visual confirmation of the action
-            scale.value = withSpring(1.04, { damping: 6, stiffness: 300 }, () => {
-              scale.value = withSpring(1, { damping: 10, stiffness: 200 });
-            });
             onComplete(quest);
           }}
-          onPressIn={() => !quest.completed && (scale.value = withTiming(0.98, { duration: 100 }))}
-          onPressOut={() => {}}
           disabled={quest.completed}
         >
           <View style={[styles.inner, SHADOWS.inner]}>
