@@ -46,7 +46,7 @@ function resolveRouteFromData(data?: Record<string, any>): string | null {
     case 'sleep':
     case 'mental':
     case 'walking':
-      return '/(tabs)/profile';
+      return '/(tabs)';
     default:
       return null;
   }

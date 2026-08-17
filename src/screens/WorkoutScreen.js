@@ -942,7 +942,7 @@ export default function WorkoutScreen() {
     setIsResting(false);
     NotificationManager.cancelRestNotification();
     finishWorkout();
-    router.push('/(tabs)/profile');
+    router.push('/(tabs)');
   };
 
   const handleCancel = () => {
