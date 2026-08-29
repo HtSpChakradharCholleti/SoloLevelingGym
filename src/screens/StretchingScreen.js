@@ -45,6 +45,7 @@ export default function StretchingScreen() {
   const { settings } = usePlayer();
   const animationsEnabled = settings?.animationsEnabled ?? true;
   const hapticsEnabled = settings?.hapticsEnabled ?? true;
+  const notificationsEnabled = settings?.notificationsEnabled ?? true;
   const [selectedDay, setSelectedDay] = useState('push');
   const [selectedStretchIds, setSelectedStretchIds] = useState(new Set());
   const [isTimerActive, setIsTimerActive] = useState(false);
@@ -335,7 +336,9 @@ export default function StretchingScreen() {
     SoundManager.stopTimerComplete();
     SoundManager.playTap();
     // Schedule push notification for when the first stretch ends
-    NotificationManager.scheduleTimerNotification(firstStretch.duration, firstStretch.name);
+    if (notificationsEnabled) {
+      NotificationManager.scheduleTimerNotification(firstStretch.duration, firstStretch.name);
+    }
   };
 
   // Start a single stretch directly
@@ -361,7 +364,9 @@ export default function StretchingScreen() {
     SoundManager.stopTimerComplete();
     SoundManager.playTap();
     // Schedule push notification for when the stretch ends
-    NotificationManager.scheduleTimerNotification(stretch.duration, stretch.name);
+    if (notificationsEnabled) {
+      NotificationManager.scheduleTimerNotification(stretch.duration, stretch.name);
+    }
   };
 
   const togglePause = () => {

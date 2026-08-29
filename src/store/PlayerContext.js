@@ -11,13 +11,13 @@ import SoundManager from '../utils/SoundManager';
 
 const STORAGE_KEY = '@solo_leveling_gym';
 const BACKUP_KEY  = '@solo_leveling_gym_backup';
-const CURRENT_SCHEMA_VERSION = 2;
+const CURRENT_SCHEMA_VERSION = 3;
 
 /**
  * Migrate persisted state from older schema versions to current.
  * Each numbered block runs exactly once when the user's stored version is behind.
  */
-function migrateState(raw) {
+export function migrateState(raw) {
   const state = { ...raw };
   let version = state.schemaVersion || 0;
 
@@ -38,6 +38,16 @@ function migrateState(raw) {
     };
     state.schemaVersion = 2;
     version = 2;
+  }
+
+  // v2 → v3: add notificationsEnabled to settings
+  if (version < 3) {
+    state.settings = {
+      ...state.settings,
+      notificationsEnabled: state.settings.notificationsEnabled ?? true,
+    };
+    state.schemaVersion = 3;
+    version = 3;
   }
 
   return state;
@@ -93,6 +103,7 @@ const initialState = {
     bgmEnabled: true,
     hapticsEnabled: true,
     weightUnit: 'kg',
+    notificationsEnabled: true,
   },
 
   // Schema version

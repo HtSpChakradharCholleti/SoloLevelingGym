@@ -347,8 +347,13 @@ export default function HunterProfileScreen() {
 
         <View style={styles.notificationButtons}>
           <TouchableOpacity
-            style={[styles.actionButton, { borderColor: COLORS.accent }]}
+            style={[styles.actionButton, { borderColor: COLORS.accent },
+              !(settings?.notificationsEnabled ?? true) && { opacity: 0.5 }]}
             onPress={async () => {
+              if (!(settings?.notificationsEnabled ?? true)) {
+                Alert.alert("Notifications Disabled", "Enable notifications in Settings to test them.");
+                return;
+              }
               await NotificationManager.scheduleTestNotification();
               Alert.alert("System Notification", "Test notification scheduled for 5 seconds from now.");
             }}
@@ -378,6 +383,25 @@ export default function HunterProfileScreen() {
         </View>
 
         <View style={styles.settingsContainer}>
+          <View style={styles.settingRow}>
+            <View style={styles.settingInfo}>
+              <MaterialCommunityIcons name="bell" size={20} color={COLORS.accent} />
+              <View style={styles.settingTextWrap}>
+                <Text style={styles.settingLabel}>Notifications</Text>
+                <Text style={styles.settingDesc}>Daily reminders & timer alerts</Text>
+              </View>
+            </View>
+            <Switch
+              value={settings?.notificationsEnabled ?? true}
+              onValueChange={(val) => updateSetting('notificationsEnabled', val)}
+              trackColor={{ false: COLORS.surfaceBorder, true: COLORS.accent + '80' }}
+              thumbColor={settings?.notificationsEnabled ? COLORS.accent : COLORS.textMuted}
+              ios_backgroundColor={COLORS.surfaceBorder}
+            />
+          </View>
+
+          <View style={styles.settingDivider} />
+
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
               <MaterialCommunityIcons name="animation-play" size={20} color={COLORS.accent} />

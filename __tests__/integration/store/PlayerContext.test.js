@@ -2,6 +2,7 @@ import {
   playerReducer,
   initialState,
   ActionTypes,
+  migrateState,
 } from '../../../src/store/PlayerContext';
 
 function dispatch(state, type, payload) {
@@ -266,6 +267,41 @@ describe('playerReducer', () => {
     });
     expect(next.settings.bgmEnabled).toBe(false);
     expect(next.settings.animationsEnabled).toBe(true);
+  });
+
+  it('default settings include notificationsEnabled', () => {
+    expect(initialState.settings.notificationsEnabled).toBe(true);
+  });
+
+  describe('migrateState', () => {
+    it('backfills notificationsEnabled for v2 state', () => {
+      const v2 = {
+        schemaVersion: 2,
+        settings: {
+          animationsEnabled: true,
+          bgmEnabled: true,
+          hapticsEnabled: true,
+          weightUnit: 'kg',
+        },
+      };
+      const migrated = migrateState(v2);
+      expect(migrated.schemaVersion).toBe(3);
+      expect(migrated.settings.notificationsEnabled).toBe(true);
+    });
+
+    it('preserves an explicit notificationsEnabled value when migrating', () => {
+      const v2 = {
+        schemaVersion: 2,
+        settings: {
+          notificationsEnabled: false,
+          weightUnit: 'lbs',
+        },
+      };
+      const migrated = migrateState(v2);
+      expect(migrated.schemaVersion).toBe(3);
+      expect(migrated.settings.notificationsEnabled).toBe(false);
+      expect(migrated.settings.weightUnit).toBe('lbs');
+    });
   });
 
   it('DISMISS_LEVEL_UP clears level-up state', () => {
