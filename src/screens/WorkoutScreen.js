@@ -794,6 +794,7 @@ export default function WorkoutScreen() {
   }, [workoutHistory]);
 
   const weightUnit = settings?.weightUnit || 'kg';
+  const notificationsEnabled = settings?.notificationsEnabled ?? true;
 
   useKeepAwake();
   const [toasts, setToasts] = useState([]);
@@ -833,7 +834,9 @@ export default function WorkoutScreen() {
     setIsResting(true);
 
     // Schedule push notification for when rest ends (background support)
-    NotificationManager.scheduleRestNotification(duration);
+    if (notificationsEnabled) {
+      NotificationManager.scheduleRestNotification(duration);
+    }
 
     restTimerRef.current = setInterval(() => {
       const remaining = Math.max(

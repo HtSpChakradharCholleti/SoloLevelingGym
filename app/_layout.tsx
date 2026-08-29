@@ -12,7 +12,7 @@ import {
 import * as SplashScreen from 'expo-splash-screen';
 import * as Notifications from 'expo-notifications';
 
-import { PlayerProvider } from '../src/store/PlayerContext';
+import { PlayerProvider, usePlayer } from '../src/store/PlayerContext';
 import { COLORS } from '../src/theme';
 import SoundManager from '../src/utils/SoundManager';
 import NotificationManager, { initNotifications } from '../src/utils/NotificationManager';
@@ -86,9 +86,31 @@ function RootLayoutContent() {
     Outfit_700Bold,
   });
 
+  const { settings } = usePlayer();
+  const notificationsEnabled = settings?.notificationsEnabled ?? true;
+
   useNotificationRouting();
 
   const didInitRef = useRef(false);
+  const prevNotificationsRef = useRef(notificationsEnabled);
+
+  // React to the user toggling notifications on/off from the profile screen.
+  // On the initial mount this is a no-op because the ref already matches; the
+  // one-time onLayout below handles first-launch setup.
+  useEffect(() => {
+    if (prevNotificationsRef.current === notificationsEnabled) return;
+    prevNotificationsRef.current = notificationsEnabled;
+
+    if (notificationsEnabled) {
+      NotificationManager.requestPermissions().then((hasPermission) => {
+        if (hasPermission) {
+          NotificationManager.scheduleAllReminders();
+        }
+      });
+    } else {
+      NotificationManager.cancelAllNotifications();
+    }
+  }, [notificationsEnabled]);
 
   const onLayout = useCallback(async () => {
     if (!fontsLoaded || didInitRef.current) return;
@@ -106,10 +128,10 @@ function RootLayoutContent() {
     initNotifications();
 
     const hasPermission = await NotificationManager.requestPermissions();
-    if (hasPermission) {
+    if (hasPermission && notificationsEnabled) {
       await NotificationManager.scheduleAllReminders();
     }
-  }, [fontsLoaded]);
+  }, [fontsLoaded, notificationsEnabled]);
 
   if (!fontsLoaded) {
     return null;
