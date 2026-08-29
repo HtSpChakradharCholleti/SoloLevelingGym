@@ -1,44 +1,34 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
-
-# dependencies
 node_modules/
-
-# Expo
 .expo/
+.expo-shared/
 dist/
-web-build/
-expo-env.d.ts
-
-# Native
-.kotlin/
-*.orig.*
+build/
+coverage/
+__harness__/screenshots/
+*.log
+.DS_Store
+.env
+.env.local
+.env.*.local
+android/app/build/
+ios/Pods/
+ios/build/
+ios/Podfile.lock
+ios/SoloLevelingGym.xcworkspace/xcuserdata/
+ios/SoloLevelingGym.xcodeproj/xcuserdata/
+ios/SoloLevelingGym.xcodeproj/project.xcworkspace/
+.idea/
+.vscode/
+*.iml
+*.hprof
+*.keystore
 *.jks
+*.mobileprovision
 *.p8
 *.p12
 *.key
-*.mobileprovision
-
-# Metro
-.metro-health-check*
-
-# debug
-npm-debug.*
-yarn-debug.*
-yarn-error.*
-
-# macOS
-.DS_Store
 *.pem
 
-# local env files
-.env*.local
-
-# typescript
-*.tsbuildinfo
-
-# generated native folders
-/ios
-/android
 # hot-updater
 .hot-updater/output
 publish-ota-update.yaml

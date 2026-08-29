@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Trust the self-signed cert on chocha.duckdns.org for OTA updates -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">chocha.duckdns.org</domain>
+        <trust-anchors>
+            <!-- Trust user-installed certs (allows self-signed via system) -->
+            <certificates src="user" />
+            <!-- Trust system certs as normal -->
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
+
+    <!-- Default: trust only system CAs for all other domains -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

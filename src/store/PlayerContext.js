@@ -128,7 +128,9 @@ const ActionTypes = {
   SET_SETTING: 'SET_SETTING',
 };
 
-function playerReducer(state, action) {
+export { initialState, ActionTypes };
+
+export function playerReducer(state, action) {
   switch (action.type) {
     case ActionTypes.LOAD_STATE:
       return { ...state, ...action.payload, isLoaded: true };
