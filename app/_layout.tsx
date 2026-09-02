@@ -16,6 +16,9 @@ import { PlayerProvider, usePlayer } from '../src/store/PlayerContext';
 import { COLORS } from '../src/theme';
 import SoundManager from '../src/utils/SoundManager';
 import NotificationManager, { initNotifications } from '../src/utils/NotificationManager';
+// Importing this registers the gym-arrival geofence background task
+// (module-scope defineTask) before we arm any region.
+import GeofenceManager from '../src/utils/GeofenceManager';
 import Overlays from '../src/components/navigation/Overlays';
 import withHotUpdater from '../src/utils/withHotUpdater';
 import { migrateDatabase, migrateHistoryFromMMKV } from '../src/db';
@@ -41,6 +44,9 @@ function resolveRouteFromData(data?: Record<string, any>): string | null {
   if (data.isRest) return '/(tabs)/workout';
 
   switch (data.type) {
+    case 'gym-arrival':
+      // Geofence fired at the gym — go straight to the workout screen.
+      return '/(tabs)/workout';
     case 'water':
     case 'food':
     case 'sleep':
@@ -86,10 +92,21 @@ function RootLayoutContent() {
     Outfit_700Bold,
   });
 
-  const { settings } = usePlayer();
+  const { settings, gymLocation, isLoaded } = usePlayer();
   const notificationsEnabled = settings?.notificationsEnabled ?? true;
+  const geofenceEnabled = settings?.geofenceEnabled ?? true;
 
   useNotificationRouting();
+
+  // Arm the gym geofence once state is loaded and reconcile it whenever the
+  // gym location or the toggle changes. The background task (registered at
+  // module scope in GeofenceManager) does the arrival prompt itself.
+  useEffect(() => {
+    if (!isLoaded) return;
+    GeofenceManager.syncGymGeofence(gymLocation, geofenceEnabled).catch((e) => {
+      console.warn('Gym geofence sync failed:', e?.message || e);
+    });
+  }, [isLoaded, gymLocation, geofenceEnabled]);
 
   const didInitRef = useRef(false);
   const prevNotificationsRef = useRef(notificationsEnabled);

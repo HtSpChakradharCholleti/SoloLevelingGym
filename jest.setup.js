@@ -66,6 +66,31 @@ jest.mock('expo-notifications', () => ({
   AndroidImportance: { MAX: 5 },
 }));
 
+// Expo location powers gym geofencing; provide safe no-ops for the region +
+// permission APIs so GeofenceManager imports cleanly in unit tests.
+jest.mock('expo-location', () => ({
+  Accuracy: { Lowest: 1, Low: 2, Balanced: 3, High: 4, Highest: 5, BestForNavigation: 6 },
+  GeofencingEventType: { Enter: 1, Exit: 2 },
+  GeofencingRegionState: { Unknown: 0, Inside: 1, Outside: 2 },
+  getForegroundPermissionsAsync: () => Promise.resolve({ status: 'granted' }),
+  requestForegroundPermissionsAsync: () => Promise.resolve({ status: 'granted' }),
+  requestBackgroundPermissionsAsync: () => Promise.resolve({ status: 'granted' }),
+  getCurrentPositionAsync: () => Promise.resolve({ coords: { latitude: 37.7749, longitude: -122.4194 } }),
+  startGeofencingAsync: jest.fn(() => Promise.resolve()),
+  stopGeofencingAsync: jest.fn(() => Promise.resolve()),
+  hasStartedGeofencingAsync: () => Promise.resolve(false),
+  isBackgroundLocationAvailableAsync: () => Promise.resolve(true),
+  hasServicesEnabledAsync: () => Promise.resolve(true),
+}));
+
+// Expo task manager backs the geofence background task; defineTask is a no-op
+// in tests so the module-scope registration in GeofenceManager doesn't error.
+jest.mock('expo-task-manager', () => ({
+  defineTask: jest.fn(),
+  isTaskDefined: jest.fn(() => true),
+  isAvailableAsync: () => Promise.resolve(true),
+}));
+
 // Expo sharing / document picker / file-system are mocked by jest-expo,
 // but keep explicit shims here for the methods used in import/export.
 jest.mock('expo-sharing', () => ({

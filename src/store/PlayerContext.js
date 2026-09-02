@@ -11,7 +11,7 @@ import SoundManager from '../utils/SoundManager';
 
 const STORAGE_KEY = '@solo_leveling_gym';
 const BACKUP_KEY  = '@solo_leveling_gym_backup';
-const CURRENT_SCHEMA_VERSION = 3;
+const CURRENT_SCHEMA_VERSION = 4;
 
 /**
  * Migrate persisted state from older schema versions to current.
@@ -50,6 +50,17 @@ export function migrateState(raw) {
     version = 3;
   }
 
+  // v3 → v4: add geofenceEnabled to settings and a top-level gymLocation
+  if (version < 4) {
+    state.settings = {
+      ...state.settings,
+      geofenceEnabled: state.settings.geofenceEnabled ?? true,
+    };
+    state.gymLocation = state.gymLocation ?? null;
+    state.schemaVersion = 4;
+    version = 4;
+  }
+
   return state;
 }
 
@@ -83,6 +94,10 @@ const initialState = {
   // Active Workout
   activeWorkout: null,
 
+  // Gym geofencing (set via "Set my gym")
+  // { latitude, longitude, radius } or null when unset
+  gymLocation: null,
+
   // History
   workoutHistory: [],
   weightHistory: [],    // [{ date: 'YYYY-MM-DD', weight: number, unit: 'kg' }]
@@ -104,6 +119,7 @@ const initialState = {
     hapticsEnabled: true,
     weightUnit: 'kg',
     notificationsEnabled: true,
+    geofenceEnabled: true,
   },
 
   // Schema version
@@ -137,6 +153,7 @@ const ActionTypes = {
   LOG_MEASUREMENT: 'LOG_MEASUREMENT',
   RESET_ALL: 'RESET_ALL',
   SET_SETTING: 'SET_SETTING',
+  SET_GYM_LOCATION: 'SET_GYM_LOCATION',
 };
 
 export { initialState, ActionTypes };
@@ -472,6 +489,9 @@ export function playerReducer(state, action) {
       };
     }
 
+    case ActionTypes.SET_GYM_LOCATION:
+      return { ...state, gymLocation: action.payload };
+
     default:
       return state;
   }
@@ -738,6 +758,15 @@ export function PlayerProvider({ children }) {
     }
   }, []);
 
+  /**
+   * Persist the gym location for geofencing. Pass `null` to clear it.
+   * The geofence region is (re)armed by the effect in app/_layout.tsx, which
+   * reacts to `gymLocation` changes — this setter only updates the store.
+   */
+  const setGymLocation = useCallback((location) => {
+    dispatch({ type: ActionTypes.SET_GYM_LOCATION, payload: location });
+  }, []);
+
   const resetAll = useCallback(() => {
     try {
       storage.delete(STORAGE_KEY);
@@ -819,6 +848,7 @@ export function PlayerProvider({ children }) {
     logWeight,
     logMeasurement,
     updateSetting,
+    setGymLocation,
     resetAll,
     exportData,
     importData,
@@ -826,7 +856,7 @@ export function PlayerProvider({ children }) {
     addExerciseToWorkout, removeExerciseFromWorkout, completeExerciseSet,
     setExerciseWeight, setExerciseCardioParams, finishWorkout, cancelWorkout,
     dismissLevelUp, dismissWorkoutComplete, dismissStreakMilestone, setPlayerName,
-    logWeight, logMeasurement, updateSetting, resetAll, exportData, importData]);
+    logWeight, logMeasurement, updateSetting, setGymLocation, resetAll, exportData, importData]);
 
   return (
     <PlayerContext.Provider value={value}>

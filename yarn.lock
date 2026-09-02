@@ -1473,6 +1473,19 @@
     parse-png "^2.1.0"
     semver "^7.6.0"
 
+"@expo/image-utils@^0.8.17":
+  version "0.8.17"
+  resolved "https://registry.yarnpkg.com/@expo/image-utils/-/image-utils-0.8.17.tgz#2d5dbc5a9639044cf2ea5dc078c8ee007891d444"
+  integrity sha512-1eVrX6FFkPNl9DJNiw3Gjsf6PtG7HttbapEVvcROVrA9PCMikujOJWWHDYKGptmKoVIIVajFZE8UHGHUb3mPug==
+  dependencies:
+    "@expo/require-utils" "^55.0.8"
+    "@expo/spawn-async" "^1.7.2"
+    chalk "^4.0.0"
+    getenv "^2.0.0"
+    jimp-compact "0.16.1"
+    parse-png "^2.1.0"
+    semver "^7.6.0"
+
 "@expo/json-file@^10.0.13", "@expo/json-file@~10.0.13":
   version "10.0.13"
   resolved "https://registry.npmjs.org/@expo/json-file/-/json-file-10.0.13.tgz"
@@ -1645,6 +1658,15 @@
   version "55.0.7"
   resolved "https://registry.yarnpkg.com/@expo/require-utils/-/require-utils-55.0.7.tgz#3b4bf38c597a3ad475ae1b1b571085f7ea96eb57"
   integrity sha512-nkgOCNeWIVfLy3B+THeuqMGNKo0x6jBit9ofE09pHL7XHSkWcEnIYRCLgks8E3wj9q3ylcF1BQLrTxGhPja7iA==
+  dependencies:
+    "@babel/code-frame" "^7.20.0"
+    "@babel/core" "^7.25.2"
+    "@babel/plugin-transform-modules-commonjs" "^7.24.8"
+
+"@expo/require-utils@^55.0.8":
+  version "55.0.8"
+  resolved "https://registry.yarnpkg.com/@expo/require-utils/-/require-utils-55.0.8.tgz#a0e799882de15e7b308e52f48c547d6a883d54a9"
+  integrity sha512-DDS5R67iz2SJwncbpcUMHtnsq31dSfllhaEncKxGlK0/ewgc2CaXUCkDA2AumfT7ubnSXiPkU9Gn8v2xCrvj+A==
   dependencies:
     "@babel/code-frame" "^7.20.0"
     "@babel/core" "^7.25.2"
@@ -5063,6 +5085,13 @@ expo-linking@~55.0.16:
     expo-constants "~55.0.16"
     invariant "^2.2.4"
 
+expo-location@~55.1.14:
+  version "55.1.14"
+  resolved "https://registry.yarnpkg.com/expo-location/-/expo-location-55.1.14.tgz#924cf91b8cdfccb09138c9447e1aff730f5d4bbf"
+  integrity sha512-CJmK0T6GOShZau7P7PvIbpNB7aG+peeSdR3wWRCOwmlFyHXegQnmR4uZo4abNBlDQ1qkhUXi7+W99BDiSeEbNA==
+  dependencies:
+    "@expo/image-utils" "^0.8.17"
+
 expo-modules-autolinking@55.0.18:
   version "55.0.18"
   resolved "https://registry.npmjs.org/expo-modules-autolinking/-/expo-modules-autolinking-55.0.18.tgz"
@@ -5171,6 +5200,13 @@ expo-system-ui@~55.0.10:
   dependencies:
     "@react-native/normalize-colors" "0.83.6"
     debug "^4.3.2"
+
+expo-task-manager@~55.0.20:
+  version "55.0.20"
+  resolved "https://registry.yarnpkg.com/expo-task-manager/-/expo-task-manager-55.0.20.tgz#952fae5a597c93fd2295efef4f21cb894f6c81ad"
+  integrity sha512-yxiERbkqibZYDArQ1QKbezKn7YkCxLyaDeiIO8DcyOqopBvUmXDkF3b7FtesW+YnAlg3g223geV8YiW1I4Suew==
+  dependencies:
+    unimodules-app-loader "~55.0.5"
 
 expo@~55.0.8:
   version "55.0.17"
@@ -9092,6 +9128,11 @@ unicorn-magic@^0.3.0:
   version "0.3.0"
   resolved "https://registry.npmjs.org/unicorn-magic/-/unicorn-magic-0.3.0.tgz"
   integrity sha512-+QBBXBCvifc56fsbuxZQ6Sic3wqqc3WWaqxs58gvJrcOuN83HGTCwz3oS5phzU9LthRNE9VrJCFCLUgHeeFnfA==
+
+unimodules-app-loader@~55.0.5:
+  version "55.0.5"
+  resolved "https://registry.yarnpkg.com/unimodules-app-loader/-/unimodules-app-loader-55.0.5.tgz#3542667367932ef1cb3fa6f52c6dd4120dab3ed8"
+  integrity sha512-2eLjtaAVQTK3EeiUAgRbfEnX78f6cMtw5Js8Ri4OcEdkrozsmvG3Wu8YVfr6kfhea17FHZkKZmO1m4dL/Ky2Bg==
 
 universalify@^0.2.0:
   version "0.2.0"

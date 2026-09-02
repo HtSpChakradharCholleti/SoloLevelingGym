@@ -273,8 +273,29 @@ describe('playerReducer', () => {
     expect(initialState.settings.notificationsEnabled).toBe(true);
   });
 
+  it('default state includes gymLocation and geofenceEnabled', () => {
+    expect(initialState.gymLocation).toBeNull();
+    expect(initialState.settings.geofenceEnabled).toBe(true);
+  });
+
+  it('SET_GYM_LOCATION stores the gym location', () => {
+    const gym = { latitude: 37.77, longitude: -122.41, radius: 200 };
+    const next = dispatch(initialState, ActionTypes.SET_GYM_LOCATION, gym);
+    expect(next.gymLocation).toEqual(gym);
+  });
+
+  it('SET_GYM_LOCATION clears the gym when set to null', () => {
+    const withGym = dispatch(initialState, ActionTypes.SET_GYM_LOCATION, {
+      latitude: 1,
+      longitude: 2,
+      radius: 150,
+    });
+    const cleared = dispatch(withGym, ActionTypes.SET_GYM_LOCATION, null);
+    expect(cleared.gymLocation).toBeNull();
+  });
+
   describe('migrateState', () => {
-    it('backfills notificationsEnabled for v2 state', () => {
+    it('backfills notificationsEnabled for v2 state and advances to current version', () => {
       const v2 = {
         schemaVersion: 2,
         settings: {
@@ -285,8 +306,8 @@ describe('playerReducer', () => {
         },
       };
       const migrated = migrateState(v2);
-      expect(migrated.schemaVersion).toBe(3);
       expect(migrated.settings.notificationsEnabled).toBe(true);
+      expect(migrated.schemaVersion).toBe(4);
     });
 
     it('preserves an explicit notificationsEnabled value when migrating', () => {
@@ -298,9 +319,33 @@ describe('playerReducer', () => {
         },
       };
       const migrated = migrateState(v2);
-      expect(migrated.schemaVersion).toBe(3);
       expect(migrated.settings.notificationsEnabled).toBe(false);
       expect(migrated.settings.weightUnit).toBe('lbs');
+    });
+
+    it('backfills gymLocation and geofenceEnabled for v3 state', () => {
+      const v3 = {
+        schemaVersion: 3,
+        settings: {
+          notificationsEnabled: true,
+          weightUnit: 'kg',
+        },
+      };
+      const migrated = migrateState(v3);
+      expect(migrated.schemaVersion).toBe(4);
+      expect(migrated.gymLocation).toBeNull();
+      expect(migrated.settings.geofenceEnabled).toBe(true);
+    });
+
+    it('preserves an existing gymLocation and geofenceEnabled when migrating', () => {
+      const v3 = {
+        schemaVersion: 3,
+        gymLocation: { latitude: 35.1, longitude: 136.9, radius: 300 },
+        settings: { geofenceEnabled: false },
+      };
+      const migrated = migrateState(v3);
+      expect(migrated.gymLocation).toEqual({ latitude: 35.1, longitude: 136.9, radius: 300 });
+      expect(migrated.settings.geofenceEnabled).toBe(false);
     });
   });
 

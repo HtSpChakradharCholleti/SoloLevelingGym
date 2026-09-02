@@ -11,6 +11,8 @@ import SystemPanel from '../components/SystemPanel';
 import StatBar from '../components/StatBar';
 import RankBadge from '../components/RankBadge';
 import NotificationManager from '../utils/NotificationManager';
+import GeofenceManager from '../utils/GeofenceManager';
+import { formatDistance } from '../utils/geo';
 import WeightLogModal from '../components/WeightLogModal';
 import { testOTAConnectivity, checkForOTAUpdate } from '../utils/otaDiagnostics';
 import { HotUpdater } from '@hot-updater/react-native';
@@ -26,9 +28,76 @@ export default function HunterProfileScreen() {
     totalWorkouts, currentStreak, bestStreak, weightHistory, measurementsHistory,
     workoutHistory,
     settings, updateSetting,
+    gymLocation, setGymLocation,
   } = usePlayer();
 
   const [isWeightModalVisible, setIsWeightModalVisible] = useState(false);
+
+  // Gym geofence state — current inside/outside + distance, updated on mount
+  // and whenever the stored gym location changes.
+  const [gymStatus, setGymStatus] = useState(null); // { inside, distanceMeters }
+  const [isSettingGym, setIsSettingGym] = useState(false);
+
+  const geofenceEnabled = settings?.geofenceEnabled ?? true;
+
+  // Refresh inside/outside status for the stored gym.
+  const refreshGymStatus = async () => {
+    if (!gymLocation) {
+      setGymStatus(null);
+      return;
+    }
+    try {
+      const state = await GeofenceManager.getInsideState(gymLocation);
+      setGymStatus({ inside: state.inside, distanceMeters: state.distanceMeters });
+    } catch (e) {
+      setGymStatus(null);
+    }
+  };
+
+  useEffect(() => {
+    refreshGymStatus();
+  }, [gymLocation]);
+
+  /**
+   * "Set my gym": request location permission, capture the current position
+   * as the gym center (with a fixed radius), and persist it. The geofence
+   * region is (re)armed by the effect in app/_layout.tsx reacting to
+   * `gymLocation`.
+   */
+  const handleSetGym = async () => {
+    if (isSettingGym) return;
+    setIsSettingGym(true);
+    try {
+      const { foreground, background } = await GeofenceManager.requestPermissions();
+      if (!foreground) {
+        Alert.alert('Location Permission Needed', 'Allow location access to set your gym.');
+        return;
+      }
+      const gym = await GeofenceManager.captureGymLocation(200);
+      setGymLocation(gym);
+      if (!background) {
+        Alert.alert(
+          'Gym Set 📍',
+          'Background location wasn’t granted. The arrival alert only works while the app is running. Allow "Always" location in Settings for the full experience.'
+        );
+      } else {
+        Alert.alert('Gym Set 📍', 'We’ll let you know when you get to the gym so you can start your warmup.');
+      }
+      refreshGymStatus();
+    } catch (e) {
+      console.warn('Failed to set gym location:', e?.message || e);
+      Alert.alert('Couldn’t Set Gym', 'We couldn’t get an accurate location. Try again with GPS on.');
+    } finally {
+      setIsSettingGym(false);
+    }
+  };
+
+  const handleClearGym = () => {
+    Alert.alert('Clear Gym Location?', 'Arrival alerts will be turned off.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Clear', style: 'destructive', onPress: () => setGymLocation(null) },
+    ]);
+  };
 
   // OTA state machine: idle | testing | checking | downloading | success | up_to_date | error
   const [otaStatus, setOtaStatus] = useState('idle');
@@ -486,6 +555,81 @@ export default function HunterProfileScreen() {
         </View>
       </SystemPanel>
 
+      {/* ── Gym Location / Geofence Panel ──────────────────────────── */}
+      <SystemPanel glowColor={COLORS.accent} style={{ marginTop: SPACING.lg }}>
+        <View style={styles.statsPanelHeader}>
+          <MaterialCommunityIcons name="map-marker-radius" size={18} color={COLORS.accent} />
+          <Text style={[styles.statsPanelTitle, { color: COLORS.accent }]}>GYM LOCATION</Text>
+        </View>
+
+        <Text style={styles.gymPanelDesc}>
+          Get an alert to start your warmup when you arrive at the gym.
+        </Text>
+
+        {gymLocation ? (
+          <View>
+            <View style={[styles.gymStatusCard, gymStatus?.inside && styles.gymStatusCardInside]}>
+              <MaterialCommunityIcons
+                name={gymStatus?.inside ? 'check-circle' : 'map-marker-distance'}
+                size={22}
+                color={gymStatus?.inside ? COLORS.success : COLORS.textMuted}
+              />
+              <View style={styles.gymStatusTextWrap}>
+                <Text style={[styles.gymStatusLabel, { color: gymStatus?.inside ? COLORS.success : COLORS.textPrimary }]}>
+                  {gymStatus ? (gymStatus.inside ? "You’re at the gym" : `Not at the gym`) : 'Gym saved'}
+                </Text>
+                <Text style={styles.gymStatusDesc}>
+                  {gymStatus ? `~${formatDistance(gymStatus.distanceMeters)} from gym · ${Math.round(gymLocation.radius)}m radius` : 'Tap refresh below'}
+                </Text>
+              </View>
+              <TouchableOpacity style={styles.gymRefreshBtn} onPress={refreshGymStatus} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} testID="gym-refresh">
+                <MaterialCommunityIcons name="refresh" size={20} color={COLORS.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.gymActionsRow}>
+              <TouchableOpacity style={[styles.gymActionBtn, { borderColor: COLORS.textMuted }]} onPress={handleSetGym} disabled={isSettingGym}>
+                <MaterialCommunityIcons name="crosshairs-gps" size={18} color={COLORS.textSecondary} />
+                <Text style={[styles.gymActionBtnText, { color: COLORS.textSecondary }]}>Re-set</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.gymActionBtn, { borderColor: COLORS.danger }]} onPress={handleClearGym}>
+                <MaterialCommunityIcons name="delete" size={18} color={COLORS.danger} />
+                <Text style={[styles.gymActionBtnText, { color: COLORS.danger }]}>Clear</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={[styles.actionButton, { borderColor: COLORS.accent }, isSettingGym && { opacity: 0.5 }]}
+            onPress={handleSetGym}
+            testID="gym-set-button"
+          >
+            <MaterialCommunityIcons name={isSettingGym ? 'radar' : 'crosshairs-gps'} size={20} color={COLORS.accent} />
+            <Text style={[styles.actionButtonText, { color: COLORS.accent }]}>
+              {isSettingGym ? 'Setting gym…' : 'Set my gym'}
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        <View style={[styles.settingDivider, { marginVertical: SPACING.sm }]} />
+        <View style={styles.settingRow}>
+          <View style={styles.settingInfo}>
+            <MaterialCommunityIcons name="map-marker-distance" size={20} color={COLORS.accent} />
+            <View style={styles.settingTextWrap}>
+              <Text style={styles.settingLabel}>Gym Arrival Alerts</Text>
+              <Text style={styles.settingDesc}>Notify when you enter the gym radius</Text>
+            </View>
+          </View>
+          <Switch
+            value={geofenceEnabled}
+            onValueChange={(val) => updateSetting('geofenceEnabled', val)}
+            trackColor={{ false: COLORS.surfaceBorder, true: COLORS.accent + '80' }}
+            thumbColor={geofenceEnabled ? COLORS.accent : COLORS.textMuted}
+            ios_backgroundColor={COLORS.surfaceBorder}
+          />
+        </View>
+      </SystemPanel>
+
       {/* ── System Updates Panel ─────────────────────────────────── */}
       <SystemPanel glowColor="#6b3fa0" style={{ marginTop: SPACING.lg }}>
         <View style={styles.statsPanelHeader}>
@@ -902,6 +1046,67 @@ const styles = StyleSheet.create({
   },
   unitBtnTextActive: {
     color: COLORS.background,
+  },
+
+  // Gym location / geofence panel
+  gymPanelDesc: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textMuted,
+    marginBottom: SPACING.md,
+  },
+  gymStatusCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+    backgroundColor: COLORS.surface,
+    borderRadius: BORDER_RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceBorder,
+    padding: SPACING.base,
+    marginBottom: SPACING.md,
+  },
+  gymStatusCardInside: {
+    borderColor: COLORS.success + '66',
+    backgroundColor: COLORS.success + '14',
+  },
+  gymStatusTextWrap: {
+    flex: 1,
+  },
+  gymStatusLabel: {
+    fontFamily: FONTS.bodyMedium,
+    fontSize: FONT_SIZES.md,
+    fontWeight: '600',
+  },
+  gymStatusDesc: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textMuted,
+    marginTop: 1,
+  },
+  gymRefreshBtn: {
+    padding: 4,
+  },
+  gymActionsRow: {
+    flexDirection: 'row',
+    gap: SPACING.sm,
+    marginBottom: SPACING.md,
+  },
+  gymActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.xs,
+    flex: 1,
+    paddingVertical: SPACING.sm,
+    borderRadius: BORDER_RADIUS.sm,
+    borderWidth: 1,
+  },
+  gymActionBtnText: {
+    fontFamily: FONTS.bodyMedium,
+    fontSize: FONT_SIZES.xs,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
 
   // Weight Log Styles

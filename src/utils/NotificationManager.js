@@ -4,13 +4,14 @@ import { Platform } from 'react-native';
 // Only set the handler when needed or inside an init function to avoid top-level triggers
 export const initNotifications = () => {
   Notifications.setNotificationHandler({
-    // Allow test and rest-complete notifications through in foreground;
-    // suppress all others.
+    // Allow test, rest-complete, and gym-arrival notifications through in
+    // foreground; suppress all others.
     handleNotification: async (notification) => {
       const data = notification?.request?.content?.data;
       const isTest = data?.isTest === true;
       const isRest = data?.isRest === true;
-      const shouldShow = isTest || isRest;
+      const isGymArrival = data?.type === 'gym-arrival';
+      const shouldShow = isTest || isRest || isGymArrival;
       return {
         shouldShowBanner: shouldShow,
         shouldShowList: shouldShow,
@@ -248,6 +249,34 @@ class NotificationManager {
       }
     } catch (e) {
       console.warn('Failed to cancel rest notification', e);
+    }
+  }
+
+  /**
+   * Fire an immediate "you've arrived at the gym" prompt. Called from the
+   * geofence background task when the device enters the gym region — works
+   * whether the app is suspended or in the foreground. A `null` trigger
+   * delivers the notification right now (no schedule). Tapping it deep-links
+   * to the Workout screen via `resolveRouteFromData` in app/_layout.tsx.
+   */
+  static async notifyGymArrival() {
+    try {
+      const id = await Notifications.scheduleNotificationAsync({
+        content: {
+          title: 'You’re at the gym! 🏋️',
+          body: 'Time to warm up and start your workout, Hunter?',
+          sound: Platform.OS === 'ios' ? 'notif.wav' : 'notif',
+          data: { type: 'gym-arrival', screen: 'Workout' },
+          android: {
+            channelId: 'system_alerts',
+          },
+        },
+        trigger: null, // deliver immediately
+      });
+      return id;
+    } catch (e) {
+      console.warn('Failed to send gym-arrival notification', e);
+      return null;
     }
   }
 
