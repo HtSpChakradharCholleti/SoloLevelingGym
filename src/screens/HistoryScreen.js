@@ -14,6 +14,7 @@ import PropTypes from 'prop-types';
 // App config & utilities
 import { COLORS, STAT_COLORS, FONTS, FONT_SIZES, SPACING, BORDER_RADIUS } from '../theme';
 import { usePlayer } from '../store/PlayerContext';
+import useShapeStyles from '../utils/useShapeStyles';
 
 // Components
 import SystemPanel from '../components/SystemPanel';
@@ -60,6 +61,7 @@ const BAR_RADIUS = 3;
  * @param { Array<{ date: string, xpEarned: number }> } workoutHistory - Workout entries with date and XP
  */
 function XPBarChart({ workoutHistory }) {
+  const chartStyles = useShapeStyles(makeChartStyles);
   // Build daily XP map for the last CHART_DAYS days
   const { dailyData, maxXP, totalXP } = useMemo(() => {
     const map = {};
@@ -194,7 +196,7 @@ function XPBarChart({ workoutHistory }) {
   );
 }
 
-const chartStyles = StyleSheet.create({
+const makeChartStyles = () => StyleSheet.create({
   container: {
     backgroundColor: COLORS.surface,
     borderRadius: BORDER_RADIUS.md,
@@ -299,6 +301,7 @@ const TIME_CHART_HEIGHT = 120;
  * @param { Array<{ date: string, duration: number }> } workoutHistory - Entries with date and duration (ms)
  */
 function WorkoutTimeChart({ workoutHistory }) {
+  const timeChartStyles = useShapeStyles(makeTimeChartStyles);
   const { dailyData, maxMinutes, totalMinutes } = useMemo(() => {
     const map = {};
     workoutHistory.forEach(w => {
@@ -434,7 +437,7 @@ function WorkoutTimeChart({ workoutHistory }) {
   );
 }
 
-const timeChartStyles = StyleSheet.create({
+const makeTimeChartStyles = () => StyleSheet.create({
   container: {
     backgroundColor: COLORS.surface,
     borderRadius: BORDER_RADIUS.md,
@@ -539,6 +542,7 @@ WorkoutTimeChart.propTypes = {
 export default function HistoryScreen() {
   const { workoutHistory, totalWorkouts, currentStreak, bestStreak, settings } = usePlayer();
   const animationsEnabled = settings?.animationsEnabled ?? true;
+  const styles = useShapeStyles(makeStyles);
 
   const [showAllHistory, setShowAllHistory] = useState(false);
   const INITIAL_ITEMS = 10;
@@ -682,7 +686,7 @@ export default function HistoryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,

@@ -6,6 +6,7 @@ import { useRouter } from 'expo-router';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { COLORS, FONTS, FONT_SIZES, SPACING, BORDER_RADIUS, SHADOWS } from '../theme';
 import { usePlayer } from '../store/PlayerContext';
+import useShapeStyles from '../utils/useShapeStyles';
 import SystemPanel from '../components/SystemPanel';
 import WeightChart from '../components/WeightChart';
 
@@ -44,6 +45,7 @@ function formatDate(dateStr) {
 export default function WeightHistoryScreen() {
   const router = useRouter();
   const { weightHistory, measurementsHistory, settings } = usePlayer();
+  const styles = useShapeStyles(makeStyles);
   const [activeTab, setActiveTab] = useState(TAB_WEIGHT);
   const animationsEnabled = settings?.animationsEnabled ?? true;
 
@@ -234,7 +236,7 @@ export default function WeightHistoryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   content: { padding: SPACING.base, paddingBottom: SPACING.xxxl },
 

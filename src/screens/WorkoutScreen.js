@@ -21,6 +21,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { COLORS, STAT_COLORS, FONTS, FONT_SIZES, SPACING, BORDER_RADIUS } from '../theme';
 import { usePlayer } from '../store/PlayerContext';
+import useShapeStyles from '../utils/useShapeStyles';
 import { EXERCISES, DUNGEONS } from '../data/exercises';
 import SystemPanel from '../components/SystemPanel';
 import XPToast from '../components/XPToast';
@@ -54,6 +55,7 @@ function AnimatedTimerDisplay({ sharedValue, style }) {
 //   2. Animated check icon (fades + scales in)
 //   3. SparkleBurst overlay anchored to the button
 function SetButton({ index, completed, statColor, onPress }) {
+  const rowStyles = useShapeStyles(makeRowStyles);
   const scale = useSharedValue(1);
   const checkOpacity = useSharedValue(completed ? 1 : 0);
   const checkScale = useSharedValue(completed ? 1 : 0.4);
@@ -128,6 +130,7 @@ function SetButton({ index, completed, statColor, onPress }) {
 // Inline weight input sitting below the exercise name. Tapping opens the
 // numeric keyboard; blurring saves automatically — no confirm button.
 function WeightChip({ exerciseId, statColor, currentWeight, lastWeight, unit, onWeightChange }) {
+  const weightStyles = useShapeStyles(makeWeightStyles);
   // Local draft so the user can edit freely without every keystroke hitting state
   const [draft, setDraft] = useState(
     currentWeight != null ? String(currentWeight) : ''
@@ -172,7 +175,7 @@ function WeightChip({ exerciseId, statColor, currentWeight, lastWeight, unit, on
   );
 }
 
-const weightStyles = StyleSheet.create({
+const makeWeightStyles = () => StyleSheet.create({
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -210,6 +213,7 @@ function TreadmillChip({
   lastSpeed, lastIncline,
   onParamsChange,
 }) {
+  const treadmillStyles = useShapeStyles(makeTreadmillStyles);
   const [speedDraft, setSpeedDraft] = useState(
     currentSpeed != null ? String(currentSpeed) : ''
   );
@@ -279,7 +283,7 @@ function TreadmillChip({
   );
 }
 
-const treadmillStyles = StyleSheet.create({
+const makeTreadmillStyles = () => StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -319,6 +323,7 @@ function ExerciseRow({
   onCardioChange, currentCardio, lastCardio,
   index,
 }) {
+  const rowStyles = useShapeStyles(makeRowStyles);
   const statColor = STAT_COLORS[exercise.stat] || COLORS.primary;
   const completedCount = completedSets.filter(Boolean).length;
   const allDone = completedCount >= totalSets;
@@ -388,7 +393,7 @@ function ExerciseRow({
   );
 }
 
-const rowStyles = StyleSheet.create({
+const makeRowStyles = () => StyleSheet.create({
   wrapper: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -458,6 +463,7 @@ const rowStyles = StyleSheet.create({
 
 // ─── Add-Exercise Modal ───────────────────────────────────────────────────────
 function AddExerciseModal({ visible, activeExerciseIds, onAdd, onClose }) {
+  const addStyles = useShapeStyles(makeAddStyles);
   const [query, setQuery] = useState('');
 
   // Build sections grouped by dungeon, excluding already-added exercises
@@ -574,7 +580,7 @@ function AddExerciseModal({ visible, activeExerciseIds, onAdd, onClose }) {
   );
 }
 
-const addStyles = StyleSheet.create({
+const makeAddStyles = () => StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.72)',
@@ -696,6 +702,7 @@ const addStyles = StyleSheet.create({
 
 // ─── Empty Workout State — floating sword icon ────────────────────────────────
 function EmptyWorkoutState() {
+  const styles = useShapeStyles(makeStyles);
   const router = useRouter();
   const floatY = useSharedValue(0);
 
@@ -762,6 +769,7 @@ export default function WorkoutScreen() {
     addExerciseToWorkout,
     removeExerciseFromWorkout,
   } = usePlayer();
+  const styles = useShapeStyles(makeStyles);
 
   /**
    * Look up the most recent recorded weight for a given exercise.
@@ -1187,7 +1195,7 @@ export default function WorkoutScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   content: { padding: SPACING.base, paddingBottom: SPACING.xxxl },
   emptyContainer: {

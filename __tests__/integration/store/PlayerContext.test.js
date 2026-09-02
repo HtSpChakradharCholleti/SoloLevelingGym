@@ -273,6 +273,10 @@ describe('playerReducer', () => {
     expect(initialState.settings.notificationsEnabled).toBe(true);
   });
 
+  it('default settings include shapeMode rounded', () => {
+    expect(initialState.settings.shapeMode).toBe('rounded');
+  });
+
   it('default state includes gymLocation and geofenceEnabled', () => {
     expect(initialState.gymLocation).toBeNull();
     expect(initialState.settings.geofenceEnabled).toBe(true);
@@ -346,6 +350,33 @@ describe('playerReducer', () => {
       const migrated = migrateState(v3);
       expect(migrated.gymLocation).toEqual({ latitude: 35.1, longitude: 136.9, radius: 300 });
       expect(migrated.settings.geofenceEnabled).toBe(false);
+    });
+
+    it('backfills shapeMode for v3 state', () => {
+      const v3 = {
+        schemaVersion: 3,
+        settings: {
+          notificationsEnabled: true,
+          weightUnit: 'kg',
+        },
+      };
+      const migrated = migrateState(v3);
+      expect(migrated.schemaVersion).toBe(4);
+      expect(migrated.settings.shapeMode).toBe('rounded');
+    });
+
+    it('preserves an explicit shapeMode value when migrating', () => {
+      const v3 = {
+        schemaVersion: 3,
+        settings: {
+          weightUnit: 'lbs',
+          notificationsEnabled: false,
+          shapeMode: 'square',
+        },
+      };
+      const migrated = migrateState(v3);
+      expect(migrated.schemaVersion).toBe(4);
+      expect(migrated.settings.shapeMode).toBe('square');
     });
   });
 

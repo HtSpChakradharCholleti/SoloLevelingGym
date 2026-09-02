@@ -12,6 +12,7 @@ import PropTypes from 'prop-types';
 import { COLORS, RANK_COLORS, STAT_COLORS, FONTS, FONT_SIZES, SPACING, BORDER_RADIUS, SHADOWS, LETTER_SPACING, LINE_HEIGHTS } from '../theme';
 import { getExercisesForDungeon } from '../data/exercises';
 import { usePlayer } from '../store/PlayerContext';
+import useShapeStyles from '../utils/useShapeStyles';
 
 /**
  * Dungeon selection card with animated glow and fade-in entry.
@@ -26,6 +27,7 @@ const DungeonCard = ({ dungeon, onPress, index = 0 }) => {
   const exercises = getExercisesForDungeon(dungeon.id);
   const { settings } = usePlayer();
   const animationsEnabled = settings?.animationsEnabled ?? true;
+  const styles = useShapeStyles(makeStyles);
 
   const scale = useSharedValue(1);
   const glowOpacity = useSharedValue(0.3);
@@ -98,7 +100,7 @@ const DungeonCard = ({ dungeon, onPress, index = 0 }) => {
     </Animated.View>
   );
 };
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   wrapper: { width: '48%', marginBottom: SPACING.md },
   container: {
     width: '100%',

@@ -15,6 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS, FONTS, FONT_SIZES, SPACING, BORDER_RADIUS, SHADOWS } from '../theme';
 import { usePlayer } from '../store/PlayerContext';
+import useShapeStyles from '../utils/useShapeStyles';
 import { getTodayString } from '../utils/quests';
 import SoundManager from '../utils/SoundManager';
 
@@ -31,6 +32,7 @@ const MEASUREMENT_FIELDS = [
 
 // ─── Shared date selector ─────────────────────────────────────────────────────
 function DateSelector({ date, onChangeDate }) {
+  const styles = useShapeStyles(makeStyles);
   const today = getTodayString();
   const yesterday = (() => {
     const d = new Date();
@@ -69,6 +71,7 @@ function DateSelector({ date, onChangeDate }) {
 
 // ─── Weight Tab ───────────────────────────────────────────────────────────────
 function WeightTab({ date, onClose }) {
+  const styles = useShapeStyles(makeStyles);
   const { weightHistory, logWeight } = usePlayer();
   const [weight, setWeight] = useState('');
   const [unit, setUnit] = useState('kg');
@@ -147,6 +150,7 @@ function WeightTab({ date, onClose }) {
 
 // ─── Measurements Tab ─────────────────────────────────────────────────────────
 function MeasurementsTab({ date, onClose }) {
+  const styles = useShapeStyles(makeStyles);
   const { measurementsHistory, logMeasurement } = usePlayer();
   const [values, setValues] = useState({ bicep: '', chest: '', belly: '' });
 
@@ -233,6 +237,7 @@ function MeasurementsTab({ date, onClose }) {
 
 // ─── Root Modal ───────────────────────────────────────────────────────────────
 export default function WeightLogModal({ visible, onClose }) {
+  const styles = useShapeStyles(makeStyles);
   const [activeTab, setActiveTab] = useState(TAB_WEIGHT);
   const [date, setDate] = useState(getTodayString());
   const slideAnim = useRef(new Animated.Value(0)).current;
@@ -363,7 +368,7 @@ export default function WeightLogModal({ visible, onClose }) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   // Absolute backdrop covers the whole screen (dimmed background)
   backdrop: {
     ...StyleSheet.absoluteFillObject,

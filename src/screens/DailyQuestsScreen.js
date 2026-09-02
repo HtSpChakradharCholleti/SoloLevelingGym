@@ -4,12 +4,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS, FONTS, FONT_SIZES, SPACING, BORDER_RADIUS, LETTER_SPACING, LINE_HEIGHTS } from '../theme';
 import { usePlayer } from '../store/PlayerContext';
+import useShapeStyles from '../utils/useShapeStyles';
 import SystemPanel from '../components/SystemPanel';
 import QuestCard from '../components/QuestCard';
 import XPToast from '../components/XPToast';
 
 export default function DailyQuestsScreen() {
   const { dailyQuests, completeQuest } = usePlayer();
+  const styles = useShapeStyles(makeStyles);
   const [toasts, setToasts] = useState([]);
   // Monotonic counter — Date.now() can collide if two toasts fire in the same ms
   const toastIdRef = useRef(0);
@@ -121,7 +123,7 @@ export default function DailyQuestsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,

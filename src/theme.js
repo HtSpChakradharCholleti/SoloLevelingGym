@@ -153,6 +153,25 @@ export const BORDER_RADIUS = {
   round: 100,
 };
 
+// Corner-shape modes. `rounded` is the default (CRED-like but soft); `square`
+// flattens every token-driven corner for a hard-edged look. Raw-numeric radii
+// (circular avatars, celebration glow-circles) are intentionally NOT tokens so
+// they stay round regardless of mode.
+export const ROUNDED_RADIUS = { sm: 6, md: 10, lg: 14, xl: 20, round: 100 };
+export const SQUARE_RADIUS = { sm: 0, md: 0, lg: 0, xl: 0, round: 0 };
+export const SHAPES = { rounded: ROUNDED_RADIUS, square: SQUARE_RADIUS };
+
+/**
+ * Mutates the shared `BORDER_RADIUS` object in place so that every style built
+ * after the call reads the active scale. Called centrally by useShapeStyles
+ * (the only thing that rebuilds styles), driven by the single global
+ * `settings.shapeMode` — so there is never a conflicting scale.
+ */
+export function applyShapeMode(mode) {
+  Object.assign(BORDER_RADIUS, mode === 'square' ? SQUARE_RADIUS : ROUNDED_RADIUS);
+  return BORDER_RADIUS;
+}
+
 // Shadow hierarchy — card < soft < popover
 // Cards: subtle depth. Soft: elevated panels. Popover: top-layer elements (modals, toasts).
 export const SHADOWS = {

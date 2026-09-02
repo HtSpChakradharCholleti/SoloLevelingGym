@@ -19,6 +19,7 @@ import PropTypes from 'prop-types';
 // App config & utilities
 import { COLORS, STAT_COLORS, FONTS, FONT_SIZES, SPACING, BORDER_RADIUS } from '../theme';
 import { usePlayer } from '../store/PlayerContext';
+import useShapeStyles from '../utils/useShapeStyles';
 
 /**
  * Animated stat progress bar — fully migrated to Reanimated.
@@ -32,6 +33,7 @@ const StatBar = ({ label, value, maxValue = 100, color, showLevel = true, level,
   const barColor = color || STAT_COLORS[label] || COLORS.primary;
   const { settings } = usePlayer();
   const shouldAnimate = animate && (settings?.animationsEnabled ?? true);
+  const styles = useShapeStyles(makeStyles);
 
   // Shared value: 0 → progress (driven by spring)
   const fillProgress = useSharedValue(0);
@@ -106,7 +108,7 @@ const StatBar = ({ label, value, maxValue = 100, color, showLevel = true, level,
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   container: {
     marginBottom: SPACING.sm,
   },

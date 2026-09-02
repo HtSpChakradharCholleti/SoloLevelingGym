@@ -12,6 +12,7 @@ import { COLORS, STAT_COLORS, RANK_COLORS, FONTS, FONT_SIZES, SPACING, BORDER_RA
 import { RANK_TITLES } from '../utils/leveling';
 import { getDungeonFromLastWeek } from '../utils/suggestions';
 import { usePlayer } from '../store/PlayerContext';
+import useShapeStyles from '../utils/useShapeStyles';
 import { useRouter } from 'expo-router';
 
 // Components
@@ -30,6 +31,7 @@ const LevelUpOverlay = ({ data, onDismiss }) => {
   const router = useRouter();
   const { settings, workoutHistory } = usePlayer();
   const animationsEnabled = settings?.animationsEnabled ?? true;
+  const styles = useShapeStyles(makeStyles);
 
   // System pick: same weekday last week — gives the user a concrete "next move"
   // suggestion right in the level-up moment.
@@ -173,7 +175,7 @@ const LevelUpOverlay = ({ data, onDismiss }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',

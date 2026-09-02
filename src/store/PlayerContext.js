@@ -50,11 +50,14 @@ export function migrateState(raw) {
     version = 3;
   }
 
-  // v3 → v4: add geofenceEnabled to settings and a top-level gymLocation
+  // v3 → v4: add geofenceEnabled + gymLocation and shapeMode to settings.
+  // Geofence and corners shipped in the same schema bump, so they share one
+  // migration block — a second `version < 4` block would be dead code.
   if (version < 4) {
     state.settings = {
       ...state.settings,
       geofenceEnabled: state.settings.geofenceEnabled ?? true,
+      shapeMode: state.settings.shapeMode ?? 'rounded',
     };
     state.gymLocation = state.gymLocation ?? null;
     state.schemaVersion = 4;
@@ -120,6 +123,7 @@ const initialState = {
     weightUnit: 'kg',
     notificationsEnabled: true,
     geofenceEnabled: true,
+    shapeMode: 'rounded',
   },
 
   // Schema version

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import Svg, { Path, Defs, LinearGradient as SvgGradient, Stop, Circle, Line, Text as SvgText } from 'react-native-svg';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS, FONTS, FONT_SIZES, SPACING, BORDER_RADIUS } from '../theme';
+import useShapeStyles from '../utils/useShapeStyles';
 
 const CHART_HEIGHT = 170;
 const CHART_PADDING_TOP = 12;
@@ -19,6 +20,7 @@ const Y_AXIS_WIDTH = 38;
  * @param {number} [maxPoints=14]
  */
 export default function WeightChart({ data = [], maxPoints = 14 }) {
+  const styles = useShapeStyles(makeStyles);
   if (data.length < 2) return null;
 
   // Chronological (oldest → newest), limited
@@ -254,7 +256,7 @@ export default function WeightChart({ data = [], maxPoints = 14 }) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   container: {
     backgroundColor: COLORS.surface,
     borderRadius: BORDER_RADIUS.md,

@@ -10,6 +10,7 @@ import PropTypes from 'prop-types';
 // App config & utilities
 import { COLORS, STAT_COLORS, FONTS, FONT_SIZES, SPACING, BORDER_RADIUS, SHADOWS } from '../theme';
 import { usePlayer } from '../store/PlayerContext';
+import useShapeStyles from '../utils/useShapeStyles';
 
 /**
  * Exercise list item with set completion buttons and stat indicator.
@@ -28,6 +29,7 @@ const ExerciseItem = ({ exercise, completedSets = [], totalSets, onCompleteSet, 
   const allDone = completedCount >= totalSets;
   const { settings } = usePlayer();
   const animationsEnabled = settings?.animationsEnabled ?? true;
+  const styles = useShapeStyles(makeStyles);
 
   return (
     <Animated.View 
@@ -78,7 +80,7 @@ const ExerciseItem = ({ exercise, completedSets = [], totalSets, onCompleteSet, 
     </Animated.View>
   );
 };
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   wrapper: { marginBottom: SPACING.sm },
   container: { backgroundColor: COLORS.surface, borderRadius: BORDER_RADIUS.md, borderWidth: 1, borderColor: COLORS.background },
   inner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: SPACING.md, borderRadius: BORDER_RADIUS.md },

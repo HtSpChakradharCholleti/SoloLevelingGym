@@ -32,6 +32,7 @@ import SystemPanel from '../components/SystemPanel';
 import SoundManager from '../utils/SoundManager';
 import NotificationManager from '../utils/NotificationManager';
 import { usePlayer } from '../store/PlayerContext';
+import useShapeStyles from '../utils/useShapeStyles';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const TIMER_SIZE = SCREEN_WIDTH * 0.55;
@@ -46,6 +47,7 @@ export default function StretchingScreen() {
   const animationsEnabled = settings?.animationsEnabled ?? true;
   const hapticsEnabled = settings?.hapticsEnabled ?? true;
   const notificationsEnabled = settings?.notificationsEnabled ?? true;
+  const styles = useShapeStyles(makeStyles);
   const [selectedDay, setSelectedDay] = useState('push');
   const [selectedStretchIds, setSelectedStretchIds] = useState(new Set());
   const [isTimerActive, setIsTimerActive] = useState(false);
@@ -901,7 +903,7 @@ export default function StretchingScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,

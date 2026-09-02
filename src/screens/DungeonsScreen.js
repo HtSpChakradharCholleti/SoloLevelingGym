@@ -6,6 +6,7 @@ import { useRouter } from 'expo-router';
 import { COLORS, STAT_COLORS, RANK_COLORS, FONTS, FONT_SIZES, SPACING, BORDER_RADIUS, LETTER_SPACING, LINE_HEIGHTS } from '../theme';
 import { DUNGEONS, getExercisesForDungeon } from '../data/exercises';
 import { usePlayer } from '../store/PlayerContext';
+import useShapeStyles from '../utils/useShapeStyles';
 import { getWorkoutSuggestion } from '../utils/suggestions';
 import DungeonCard from '../components/DungeonCard';
 import SystemPanel from '../components/SystemPanel';
@@ -14,6 +15,7 @@ import SoundManager from '../utils/SoundManager';
 export default function DungeonsScreen() {
   const router = useRouter();
   const { startWorkout, workoutHistory, stats } = usePlayer();
+  const styles = useShapeStyles(makeStyles);
   const [selectedDungeon, setSelectedDungeon] = useState(null);
   const [selectedExercises, setSelectedExercises] = useState([]);
 
@@ -272,7 +274,7 @@ export default function DungeonsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,

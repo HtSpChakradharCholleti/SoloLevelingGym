@@ -1,8 +1,10 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { COLORS, BORDER_RADIUS, SPACING, SHADOWS } from '../theme';
+import useShapeStyles from '../utils/useShapeStyles';
 
 const SystemPanel = ({ children, style, noBorder = false }) => {
+  const styles = useShapeStyles(makeStyles);
   return (
     <View style={[styles.container, style]}>
       <View style={[styles.inner, SHADOWS.card]}>
@@ -14,7 +16,7 @@ const SystemPanel = ({ children, style, noBorder = false }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   container: {
     marginBottom: SPACING.sectionGap,
     borderRadius: BORDER_RADIUS.lg,

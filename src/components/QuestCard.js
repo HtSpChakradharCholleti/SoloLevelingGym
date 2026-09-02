@@ -10,6 +10,7 @@ import PropTypes from 'prop-types';
 // App config & utilities
 import { COLORS, STAT_COLORS, FONTS, FONT_SIZES, SPACING, BORDER_RADIUS, SHADOWS, LETTER_SPACING, LINE_HEIGHTS } from '../theme';
 import { usePlayer } from '../store/PlayerContext';
+import useShapeStyles from '../utils/useShapeStyles';
 
 /**
  * Quest card with animated glow border and completion state.
@@ -23,6 +24,7 @@ const QuestCard = ({ quest, onComplete, index = 0 }) => {
   const statColor = quest.stat === 'ALL' ? COLORS.warning : STAT_COLORS[quest.stat] || COLORS.primary;
   const { settings } = usePlayer();
   const animationsEnabled = settings?.animationsEnabled ?? true;
+  const styles = useShapeStyles(makeStyles);
   const glowOpacity = useSharedValue(0.2);
 
   React.useEffect(() => {
@@ -91,7 +93,7 @@ const QuestCard = ({ quest, onComplete, index = 0 }) => {
     </Animated.View>
   );
 };
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   wrapper: { marginBottom: SPACING.sm },
   container: { backgroundColor: COLORS.surface, borderRadius: BORDER_RADIUS.md, borderWidth: 1, borderColor: COLORS.background },
   inner: { flexDirection: 'row', alignItems: 'center', padding: SPACING.md, borderRadius: BORDER_RADIUS.md },

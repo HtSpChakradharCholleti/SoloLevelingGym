@@ -15,6 +15,7 @@ import {
   LETTER_SPACING, LINE_HEIGHTS, SHADOWS,
 } from '../theme';
 import { usePlayer } from '../store/PlayerContext';
+import useShapeStyles from '../utils/useShapeStyles';
 import SparkleBurst from './SparkleBurst';
 
 export const STREAK_MILESTONES = [3, 7, 14, 30, 50, 100, 365];
@@ -36,6 +37,7 @@ const MILESTONE_TITLES = {
 const StreakMilestoneOverlay = ({ data, onDismiss }) => {
   const { settings } = usePlayer();
   const animationsEnabled = settings?.animationsEnabled ?? true;
+  const styles = useShapeStyles(makeStyles);
 
   const overlayOpacity = useRef(new Animated.Value(animationsEnabled ? 0 : 1)).current;
   const flameScale = useRef(new Animated.Value(animationsEnabled ? 0.5 : 1)).current;
@@ -96,7 +98,7 @@ const StreakMilestoneOverlay = ({ data, onDismiss }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',

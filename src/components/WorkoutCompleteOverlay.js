@@ -27,6 +27,7 @@ import {
   LINE_HEIGHTS,
 } from '../theme';
 import { usePlayer } from '../store/PlayerContext';
+import useShapeStyles from '../utils/useShapeStyles';
 import SparkleBurst from './SparkleBurst';
 
 /**
@@ -65,6 +66,7 @@ function formatDuration(ms) {
 const WorkoutCompleteOverlay = ({ data, onDismiss }) => {
   const { settings } = usePlayer();
   const animationsEnabled = settings?.animationsEnabled ?? true;
+  const styles = useShapeStyles(makeStyles);
 
   const overlayOpacity = useRef(new Animated.Value(animationsEnabled ? 0 : 1)).current;
   const contentScale = useRef(new Animated.Value(animationsEnabled ? 0.92 : 1)).current;
@@ -208,7 +210,7 @@ const WorkoutCompleteOverlay = ({ data, onDismiss }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',

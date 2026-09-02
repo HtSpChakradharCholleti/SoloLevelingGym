@@ -6,6 +6,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { COLORS, STAT_COLORS, STAT_LABELS, STAT_DESCRIPTIONS, RANK_COLORS, FONTS, FONT_SIZES, SPACING, BORDER_RADIUS, SHADOWS, GRADIENTS } from '../theme';
 import { usePlayer } from '../store/PlayerContext';
+import useShapeStyles from '../utils/useShapeStyles';
 import { getRequiredXP, getLevelProgress, getStatLevel, getStatProgress, RANK_TITLES } from '../utils/leveling';
 import SystemPanel from '../components/SystemPanel';
 import StatBar from '../components/StatBar';
@@ -30,6 +31,7 @@ export default function HunterProfileScreen() {
     settings, updateSetting,
     gymLocation, setGymLocation,
   } = usePlayer();
+  const styles = useShapeStyles(makeStyles);
 
   const [isWeightModalVisible, setIsWeightModalVisible] = useState(false);
 
@@ -552,6 +554,36 @@ export default function HunterProfileScreen() {
               })}
             </View>
           </View>
+
+          <View style={styles.settingDivider} />
+
+          <View style={styles.settingRow}>
+            <View style={styles.settingInfo}>
+              <MaterialCommunityIcons name="rectangle-outline" size={20} color={COLORS.accent} />
+              <View style={styles.settingTextWrap}>
+                <Text style={styles.settingLabel}>Corners</Text>
+                <Text style={styles.settingDesc}>Rounded or square card edges</Text>
+              </View>
+            </View>
+            <View style={styles.unitToggle}>
+              {[
+                { mode: 'rounded', label: 'Rounded' },
+                { mode: 'square', label: 'Square' },
+              ].map(({ mode, label }) => {
+                const active = (settings?.shapeMode ?? 'rounded') === mode;
+                return (
+                  <TouchableOpacity
+                    key={mode}
+                    style={[styles.unitBtn, active && styles.unitBtnActive]}
+                    onPress={() => updateSetting('shapeMode', mode)}
+                    activeOpacity={0.75}
+                  >
+                    <Text style={[styles.unitBtnText, active && styles.unitBtnTextActive]}>{label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
         </View>
       </SystemPanel>
 
@@ -726,7 +758,7 @@ export default function HunterProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
