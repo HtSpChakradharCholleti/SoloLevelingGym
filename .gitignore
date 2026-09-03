@@ -33,3 +33,4 @@ ios/SoloLevelingGym.xcodeproj/project.xcworkspace/
 .hot-updater/output
 publish-ota-update.yaml
 .idea
+.dockerignore
