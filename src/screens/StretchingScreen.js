@@ -654,6 +654,15 @@ export default function StretchingScreen() {
               <SystemPanel>
                 <Text style={styles.activeStretchName}>{currentStretch.name}</Text>
                 <Text style={styles.activeStretchDesc}>{currentStretch.description}</Text>
+                {currentStretch.feel ? (
+                  <View style={styles.feelBlock}>
+                    <View style={styles.feelHeader}>
+                      <MaterialCommunityIcons name="heart-pulse-outline" size={12} color={COLORS.accent} />
+                      <Text style={styles.feelLabel}>HOW IT SHOULD FEEL</Text>
+                    </View>
+                    <Text style={styles.feelText}>{currentStretch.feel}</Text>
+                  </View>
+                ) : null}
                 <View style={styles.stretchMeta}>
                   <MaterialCommunityIcons
                     name="timer-outline"
@@ -1229,6 +1238,36 @@ const makeStyles = () => StyleSheet.create({
     color: COLORS.textSecondary,
     lineHeight: 22,
     marginBottom: SPACING.sm,
+  },
+  // What-It-Should-Feel block
+  feelBlock: {
+    marginTop: SPACING.xs,
+    marginBottom: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    borderRadius: BORDER_RADIUS.sm,
+    backgroundColor: COLORS.accentGlow,
+    borderWidth: 1,
+    borderColor: COLORS.accent + '30',
+  },
+  feelHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+    marginBottom: 4,
+  },
+  feelLabel: {
+    fontFamily: FONTS.heading,
+    fontSize: 10,
+    fontWeight: '700',
+    color: COLORS.accent,
+    letterSpacing: 1.5,
+  },
+  feelText: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+    lineHeight: 18,
   },
   stretchMeta: {
     flexDirection: 'row',

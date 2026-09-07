@@ -17,6 +17,7 @@ export const STRETCHES = [
     sides: false,
     icon: 'yoga',
     description: 'Clasp hands behind your back, squeeze shoulder blades together, lift chest up.',
+    feel: 'A mild, even pull across the front of the chest and shoulders. Should feel easy and open, never sharp.',
   },
   {
     id: 'doorway_chest_stretch',
@@ -26,6 +27,7 @@ export const STRETCHES = [
     sides: true,
     icon: 'yoga',
     description: 'Place forearm on door frame at 90°, lean forward gently until you feel a stretch in the pec.',
+    feel: 'A steady, even pull through the front of the shoulder and pec on the stretched side. Lean only until it feels firm, not painful.',
   },
   {
     id: 'overhead_tricep_stretch',
@@ -35,6 +37,7 @@ export const STRETCHES = [
     sides: true,
     icon: 'arm-flex',
     description: 'Raise one arm overhead, bend elbow. Use the other hand to gently press the elbow back.',
+    feel: 'A long, controlled pull along the back of the upper arm. If the shoulder pinches, ease the pressure and drop the elbow a little.',
   },
   {
     id: 'cross_body_shoulder',
@@ -44,6 +47,7 @@ export const STRETCHES = [
     sides: true,
     icon: 'arm-flex',
     description: 'Pull one arm across your chest with the opposite hand. Keep shoulder relaxed.',
+    feel: 'A soft, even tension across the top of the shoulder and upper arm. The joint itself should stay loose, not squeezed.',
   },
   {
     id: 'wrist_flexor_stretch',
@@ -53,6 +57,7 @@ export const STRETCHES = [
     sides: true,
     icon: 'hand-back-right',
     description: 'Extend arm with palm up, gently pull fingers back with the other hand.',
+    feel: 'A gentle stretch along the inner forearm and wrist. Stop if you feel any tingling or numbness in the hand.',
   },
 
   // ─── PULL DAY ────────────────────────────
@@ -64,6 +69,7 @@ export const STRETCHES = [
     sides: true,
     icon: 'yoga',
     description: 'Grab a pole or doorframe overhead, lean your hips away to stretch the lat.',
+    feel: 'A deep, even pull down the side of the torso, from underarm to the hip. The stretch deepens as your hips shift back.',
   },
   {
     id: 'standing_bicep_stretch',
@@ -73,6 +79,7 @@ export const STRETCHES = [
     sides: true,
     icon: 'arm-flex',
     description: 'Extend arm forward, palm up. Use the other hand to gently press fingers downward.',
+    feel: 'A focused pull through the bicep and the front of the shoulder. Keep the elbow pointing forward, not out to the side.',
   },
   {
     id: 'forearm_extensor_stretch',
@@ -82,6 +89,7 @@ export const STRETCHES = [
     sides: true,
     icon: 'hand-back-right',
     description: 'Extend arm with palm down, gently pull fingers toward you with the other hand.',
+    feel: 'A firm but mild stretch across the top of the forearm and wrist. Any tingling means to back off the pressure.',
   },
   {
     id: 'upper_back_stretch',
@@ -91,6 +99,7 @@ export const STRETCHES = [
     sides: false,
     icon: 'yoga',
     description: 'Clasp hands in front, round your upper back, push hands forward. Chin to chest.',
+    feel: 'A broad, even stretch across the upper back and between the shoulder blades. Rounding deeper should feel smooth, not pinchy.',
   },
   {
     id: 'thread_the_needle',
@@ -100,6 +109,7 @@ export const STRETCHES = [
     sides: true,
     icon: 'yoga',
     description: 'On all fours, reach one arm under your body, rotating your thoracic spine.',
+    feel: 'A twisting stretch through the mid-back on the reaching side. Ease the rotation until it feels deep, never sharp.',
   },
 
   // ─── LEGS DAY ────────────────────────────
@@ -111,6 +121,7 @@ export const STRETCHES = [
     sides: true,
     icon: 'human',
     description: 'Stand on one leg, grab ankle behind you. Keep knees together, push hips forward.',
+    feel: 'A strong pull along the front of the thigh, from the hip toward the knee. If the lower back aches, you are leaning too far back.',
   },
   {
     id: 'standing_hamstring_stretch',
@@ -120,6 +131,7 @@ export const STRETCHES = [
     sides: true,
     icon: 'human',
     description: 'Place heel on an elevated surface, hinge forward at the hips with a flat back.',
+    feel: 'A long, controlled stretch along the back of the thigh toward the hamstring. Hinge from the hips, and keep the sensation in the leg, not the lower back.',
   },
   {
     id: 'hip_flexor_lunge',
@@ -129,6 +141,7 @@ export const STRETCHES = [
     sides: true,
     icon: 'walk',
     description: 'Kneel in a lunge position, push hips forward. Squeeze glute of the kneeling leg.',
+    feel: 'A deep pull at the front of the hip of the kneeling leg. Squeeze the glute to sharpen it — the feeling should sit in the hip, not the low back.',
   },
   {
     id: 'pigeon_pose_stretch',
@@ -138,6 +151,7 @@ export const STRETCHES = [
     sides: true,
     icon: 'yoga',
     description: 'From a plank, bring one knee behind the wrist. Lower hips and hold. Deep hip opener.',
+    feel: 'A deep, wide stretch through the outer hip and glute. Intensity can build gradually — settle into it with your breath instead of forcing the depth.',
   },
   {
     id: 'calf_stretch',
@@ -147,6 +161,7 @@ export const STRETCHES = [
     sides: true,
     icon: 'human',
     description: 'Place ball of foot against a wall, lean forward. Keep the heel grounded.',
+    feel: 'A firm, narrow stretch in the calf with the heel planted. Bending the knee slightly shifts the feeling deeper into the muscle.',
   },
   {
     id: 'seated_butterfly',
@@ -156,6 +171,7 @@ export const STRETCHES = [
     sides: false,
     icon: 'yoga',
     description: 'Sit with soles of feet together, gently press knees down with elbows.',
+    feel: 'A gentle, even release through the inner thighs. It should feel mild — press only as far as stays comfortable.',
   },
 
   // ─── GENERAL / COOLDOWN ──────────────────
@@ -167,6 +183,7 @@ export const STRETCHES = [
     sides: false,
     icon: 'head-outline',
     description: 'Slowly roll your head in a circle. Switch direction halfway through.',
+    feel: 'Light, smooth movement through the neck — a mild release at the base of the skull and along the side of the neck. No forcing or bouncing.',
   },
   {
     id: 'childs_pose',
@@ -176,6 +193,7 @@ export const STRETCHES = [
     sides: false,
     icon: 'yoga',
     description: 'Kneel and sit on heels, stretch arms forward on the floor. Breathe deeply.',
+    feel: 'A calm, full stretch across the upper back and shoulders, easing deeper with each exhale. It should feel restorative, not strained.',
   },
   {
     id: 'seated_forward_fold',
@@ -185,6 +203,7 @@ export const STRETCHES = [
     sides: false,
     icon: 'yoga',
     description: 'Sit with legs extended, hinge at hips and reach for your toes. Keep back flat.',
+    feel: 'A long pull down the back of both legs. A little calf tightness is normal — hinge from the hips rather than rounding the back.',
   },
   {
     id: 'spinal_twist',
@@ -194,6 +213,7 @@ export const STRETCHES = [
     sides: true,
     icon: 'yoga',
     description: 'Lie on your back, bring one knee across the body. Extend opposite arm. Look away.',
+    feel: 'A gentle rotation through the spine, strongest between the shoulder blades. Let the knee sink toward the floor with each breath.',
   },
   {
     id: 'cat_cow',
@@ -203,6 +223,7 @@ export const STRETCHES = [
     sides: false,
     icon: 'yoga',
     description: 'On all fours, alternate between arching (cow) and rounding (cat) your spine.',
+    feel: 'A wave of ease moving down the spine — light stretch in the lower back at the top, a mild stretch across the upper back at the bottom. Slow and controlled.',
   },
   {
     id: 'plank_hold',
@@ -212,6 +233,7 @@ export const STRETCHES = [
     sides: false,
     icon: 'human',
     description: 'Hold a high plank position. Keep hips level, core braced, don\'t let your lower back sag.',
+    feel: 'Steady muscular burn through the core, shoulders, and arms. Form should stay rigid — the shake and heat come from the hold, not from sagging.',
   },
   {
     id: 'forearm_plank',
@@ -221,6 +243,7 @@ export const STRETCHES = [
     sides: false,
     icon: 'human',
     description: 'Hold a forearm plank. Elbows under shoulders, body in a straight line. Breathe steadily.',
+    feel: 'A deeper, more concentrated core burn than the high plank, with the shoulders and arms engaged. Keep breathing — breath-holding is a sign you are at the edge of form.',
   },
 ];
 
