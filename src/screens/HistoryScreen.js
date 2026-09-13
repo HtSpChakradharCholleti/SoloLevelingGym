@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 
 // Third-party
@@ -545,6 +545,16 @@ export default function HistoryScreen() {
   const styles = useShapeStyles(makeStyles);
 
   const [showAllHistory, setShowAllHistory] = useState(false);
+  // Ids of battle cards currently expanded to show start/end times.
+  const [expandedIds, setExpandedIds] = useState(() => new Set());
+  const toggleExpanded = useCallback((id) => {
+    setExpandedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
   const INITIAL_ITEMS = 10;
   const visibleHistory = showAllHistory ? workoutHistory : workoutHistory.slice(0, INITIAL_ITEMS);
   const hasMore = workoutHistory.length > INITIAL_ITEMS;
@@ -571,14 +581,31 @@ export default function HistoryScreen() {
     });
   };
 
-  const renderWorkoutItem = (entry, index) => (
+  // Manual 24h formatting — Intl with hour12:false can yield "24:00" for
+  // midnight on some Android/JSC builds.
+  const formatClockTime = (ms) => {
+    if (!ms) return '--:--';
+    const d = new Date(ms);
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  };
+
+  const renderWorkoutItem = (entry, index) => {
+    const isExpanded = expandedIds.has(entry.id);
+    return (
     <Animated.View
       key={entry.id}
       entering={animationsEnabled && index < 5 ? FadeInUp.delay(index * 80).duration(400) : undefined}
       style={styles.historyItem}
     >
-      {/* Date & Duration */}
-      <View style={styles.itemHeader}>
+      {/* Date & Duration — tap to reveal start/end times */}
+      <TouchableOpacity
+        style={styles.itemHeader}
+        onPress={() => toggleExpanded(entry.id)}
+        activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: isExpanded }}
+        accessibilityLabel={isExpanded ? 'Hide workout times' : 'Show workout times'}
+      >
         <View style={styles.dateArea}>
           <MaterialCommunityIcons name="sword" size={16} color={COLORS.accent} />
           <Text style={styles.dateText}>{formatDate(entry.date)}</Text>
@@ -586,8 +613,22 @@ export default function HistoryScreen() {
         <View style={styles.durationArea}>
           <MaterialCommunityIcons name="clock-outline" size={14} color={COLORS.textMuted} />
           <Text style={styles.durationText}>{formatDuration(entry.duration)}</Text>
+          <MaterialCommunityIcons
+            name={isExpanded ? 'chevron-up' : 'chevron-down'}
+            size={16}
+            color={COLORS.textMuted}
+          />
         </View>
-      </View>
+      </TouchableOpacity>
+
+      {isExpanded && (
+        <View style={styles.timeRow}>
+          <MaterialCommunityIcons name="clock-fast" size={14} color={COLORS.accent} />
+          <Text style={styles.timeText}>{formatClockTime(entry.startTime)}</Text>
+          <MaterialCommunityIcons name="arrow-right" size={12} color={COLORS.textMuted} />
+          <Text style={styles.timeText}>{formatClockTime(entry.endTime)}</Text>
+        </View>
+      )}
 
       {/* Exercises */}
       <View style={styles.exercisesList}>
@@ -623,7 +664,8 @@ export default function HistoryScreen() {
         ))}
       </View>
     </Animated.View>
-  );
+    );
+  };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -783,6 +825,23 @@ const makeStyles = () => StyleSheet.create({
     fontFamily: FONTS.body,
     fontSize: FONT_SIZES.sm,
     color: COLORS.textMuted,
+  },
+  timeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: SPACING.xs,
+    backgroundColor: COLORS.surfaceLight,
+    borderRadius: BORDER_RADIUS.sm,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xs,
+    marginBottom: SPACING.sm,
+  },
+  timeText: {
+    fontFamily: FONTS.bodySemiBold,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+    fontVariant: ['tabular-nums'],
   },
   exercisesList: {
     flexDirection: 'row',
