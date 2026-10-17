@@ -99,6 +99,18 @@ export const EXERCISES = [
     muscle: 'Chest (Upper)',
   },
   {
+    id: 'flat_press',
+    name: 'Flat Press',
+    dungeonId: 'push',
+    stat: 'STR',
+    baseXP: 25,
+    defaultSets: 3,
+    defaultReps: 10,
+    repRange: '8–12',
+    icon: 'dumbbell',
+    muscle: 'Chest (Mid)',
+  },
+  {
     id: 'machine_shoulder_press',
     name: 'Machine Shoulder Press',
     dungeonId: 'push',

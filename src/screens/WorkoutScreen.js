@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   Alert, Modal, TextInput, FlatList, SectionList,
@@ -801,6 +801,46 @@ export default function WorkoutScreen() {
     return { speed, incline };
   }, [workoutHistory]);
 
+  /**
+   * Compute the average workout duration (in ms) for the given dungeon id,
+   * based on completed sessions in workoutHistory.
+   * Sessions longer than 3 hours are excluded as outliers (forgotten to close,
+   * etc.) — consistent with the same cap in the FINISH_WORKOUT reducer.
+   * Returns null when no valid matching history exists.
+   */
+  const getAvgDurationForDungeon = useCallback((dungeonId) => {
+    if (!dungeonId) return null;
+    const THREE_HOURS_MS = 3 * 60 * 60 * 1000;
+    const matching = workoutHistory.filter(entry => {
+      if (!entry.duration || entry.duration <= 0) return false;
+      if (entry.duration > THREE_HOURS_MS) return false; // outlier — skip
+      // A session matches if ANY exercise in it belonged to this dungeon.
+      return entry.exercises?.some(e => {
+        const ex = EXERCISES.find(x => x.id === e.id);
+        return ex?.dungeonId === dungeonId;
+      });
+    });
+    if (matching.length === 0) return null;
+    const total = matching.reduce((sum, e) => sum + e.duration, 0);
+    return Math.round(total / matching.length); // ms
+  }, [workoutHistory]);
+
+  // Estimated completion time: startTime + avg duration, formatted as local time
+  const estimatedFinishTime = useMemo(() => {
+    if (!activeWorkout) return null;
+    const dungeonId = activeWorkout.exercises[0]?.dungeonId ?? null;
+    const avgMs = getAvgDurationForDungeon(dungeonId);
+    if (avgMs == null) return null;
+    const finishTs = activeWorkout.startTime + avgMs;
+    const d = new Date(finishTs);
+    const h = d.getHours();
+    const m = d.getMinutes().toString().padStart(2, '0');
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const hour12 = h % 12 || 12;
+    return `~${hour12}:${m} ${ampm}`;
+  }, [activeWorkout, getAvgDurationForDungeon]);
+
+
   const weightUnit = settings?.weightUnit || 'kg';
   const notificationsEnabled = settings?.notificationsEnabled ?? true;
 
@@ -1004,6 +1044,16 @@ export default function WorkoutScreen() {
               <Text style={styles.timerLabel}>DUNGEON TIME</Text>
               <AnimatedTimerDisplay sharedValue={elapsedShared} style={styles.timerValue} />
             </View>
+            {estimatedFinishTime != null && (
+              <View style={styles.etaArea}>
+                <View style={styles.etaLabelRow}>
+                  <MaterialCommunityIcons name="clock-fast" size={10} color={COLORS.textMuted} />
+                  <Text style={styles.etaLabel}>DONE BY</Text>
+                </View>
+                <Text style={styles.etaValue}>{estimatedFinishTime}</Text>
+                <Text style={styles.etaHint}>based on past sessions</Text>
+              </View>
+            )}
             <View style={styles.xpArea}>
               <Text style={styles.xpLabel}>XP EARNED</Text>
               <Text style={styles.xpValue}>+{activeWorkout.xpEarned}</Text>
@@ -1219,7 +1269,7 @@ const makeStyles = () => StyleSheet.create({
     fontFamily: FONTS.heading, fontSize: FONT_SIZES.base,
     fontWeight: '700', color: '#fff', letterSpacing: 2,
   },
-  timerSection: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: SPACING.base },
+  timerSection: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: SPACING.base },
   timerArea: {},
   timerLabel: {
     fontFamily: FONTS.heading, fontSize: FONT_SIZES.xs,
@@ -1228,6 +1278,20 @@ const makeStyles = () => StyleSheet.create({
   timerValue: {
     fontFamily: FONTS.heading, fontSize: FONT_SIZES.xxxl,
     fontWeight: '700', color: COLORS.textPrimary,
+  },
+  etaArea: { alignItems: 'center' },
+  etaLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginBottom: 2 },
+  etaLabel: {
+    fontFamily: FONTS.heading, fontSize: FONT_SIZES.xs,
+    fontWeight: '700', color: COLORS.textMuted, letterSpacing: 1,
+  },
+  etaValue: {
+    fontFamily: FONTS.heading, fontSize: FONT_SIZES.xl,
+    fontWeight: '700', color: COLORS.textSecondary,
+  },
+  etaHint: {
+    fontFamily: FONTS.body, fontSize: 9,
+    color: COLORS.textMuted, fontStyle: 'italic', marginTop: 2,
   },
   xpArea: { alignItems: 'flex-end' },
   xpLabel: {
