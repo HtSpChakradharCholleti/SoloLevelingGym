@@ -1,21 +1,30 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
+// Fixed identifier for the live-workout notification — same ID replaces the
+// existing notification in-place on Android (no stacking).
+const WORKOUT_LIVE_ID = 'active_workout_live';
+
 // Only set the handler when needed or inside an init function to avoid top-level triggers
 export const initNotifications = () => {
   Notifications.setNotificationHandler({
     // Allow test, rest-complete, and gym-arrival notifications through in
-    // foreground; suppress all others.
+    // foreground with banner + sound.
+    // Workout-live updates are added to the tray silently (shouldShowList: true)
+    // but never pop a banner or play sound while the app is open.
     handleNotification: async (notification) => {
       const data = notification?.request?.content?.data;
       const isTest = data?.isTest === true;
       const isRest = data?.isRest === true;
       const isGymArrival = data?.type === 'gym-arrival';
-      const shouldShow = isTest || isRest || isGymArrival;
+      const isWorkoutLive = data?.isWorkoutLive === true;
+      const shouldAlert = isTest || isRest || isGymArrival;
       return {
-        shouldShowBanner: shouldShow,
-        shouldShowList: shouldShow,
-        shouldPlaySound: shouldShow,
+        shouldShowBanner: shouldAlert,
+        // workout-live must reach the tray even when the app is in foreground,
+        // otherwise Android discards it before it can persist in the drawer.
+        shouldShowList: shouldAlert || isWorkoutLive,
+        shouldPlaySound: shouldAlert,
         shouldSetBadge: false,
       };
     },
@@ -38,6 +47,16 @@ class NotificationManager {
         vibrationPattern: [0, 250, 250, 250],
         lightColor: '#FF231F7C',
         sound: 'notif',
+      });
+      // Low-importance channel for the live workout notification — no sound or
+      // vibration on each update tick so it silently updates in the tray.
+      await Notifications.setNotificationChannelAsync('workout_live', {
+        name: 'Active Workout',
+        importance: Notifications.AndroidImportance.LOW,
+        vibrationPattern: [],
+        enableVibrate: false,
+        sound: null,
+        showBadge: false,
       });
     }
 
@@ -282,6 +301,60 @@ class NotificationManager {
 
   static async cancelAllNotifications() {
     await Notifications.cancelAllScheduledNotificationsAsync();
+  }
+
+  /**
+   * Show or update the persistent live-workout notification.
+   * Uses a fixed identifier so Android replaces it in-place (no new entry
+   * in the tray). The `ongoing` flag prevents users from swiping it away.
+   * Tapping it deep-links to the workout screen via the existing routing logic.
+   *
+   * @param {number} elapsedSeconds  - seconds elapsed since workout started
+   * @param {number} setsCompleted   - number of sets completed so far
+   * @param {number} totalSets       - total sets in the workout
+   */
+  static async showWorkoutNotification(elapsedSeconds, setsCompleted, totalSets) {
+    try {
+      const mins = Math.floor(elapsedSeconds / 60);
+      const secs = elapsedSeconds % 60;
+      const timeStr = `${mins}:${secs.toString().padStart(2, '0')}`;
+      const progress = totalSets > 0
+        ? `${setsCompleted}/${totalSets} sets`
+        : 'Workout in progress';
+
+      await Notifications.scheduleNotificationAsync({
+        identifier: WORKOUT_LIVE_ID,
+        content: {
+          title: '⚔️ Dungeon Active',
+          body: `${timeStr}  •  ${progress}  •  Tap to return`,
+          data: { screen: 'Workout', isWorkoutLive: true },
+          sticky: true,  // iOS: keeps it in notification center
+          android: {
+            channelId: 'workout_live',
+            ongoing: true,
+            autoCancel: false,
+            smallIcon: 'notification_icon',
+            color: '#cba153',
+            showTimestamp: false,
+          },
+        },
+        trigger: null, // deliver immediately
+      });
+    } catch (e) {
+      console.warn('Failed to show workout notification', e);
+    }
+  }
+
+  /**
+   * Dismiss the live-workout notification from the tray.
+   * Called when the workout is finished or cancelled.
+   */
+  static async cancelWorkoutNotification() {
+    try {
+      await Notifications.dismissNotificationAsync(WORKOUT_LIVE_ID);
+    } catch (e) {
+      // dismissNotificationAsync may throw if notification isn't present — safe to ignore
+    }
   }
 }
 

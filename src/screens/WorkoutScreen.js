@@ -871,6 +871,35 @@ export default function WorkoutScreen() {
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [activeWorkout]);
 
+  // Live workout notification — posted immediately on mount and refreshed
+  // every 30 s so the tray shows current elapsed time + set progress.
+  // Uses a fixed identifier so Android replaces in-place (no stacking).
+  // Cancelled on unmount (finish / cancel both also call cancel explicitly).
+  const liveNotifRef = useRef(null);
+  useEffect(() => {
+    if (!activeWorkout || !notificationsEnabled) return;
+
+    const post = () => {
+      const elapsed = Math.floor((Date.now() - activeWorkout.startTime) / 1000);
+      const setsCompleted = Object.values(activeWorkout.completedSets || {})
+        .reduce((sum, sets) => sum + (sets ? sets.filter(Boolean).length : 0), 0);
+      const total = activeWorkout.exercises.reduce((sum, e) => sum + e.sets, 0);
+      NotificationManager.showWorkoutNotification(elapsed, setsCompleted, total);
+    };
+
+    post(); // fire immediately
+    liveNotifRef.current = setInterval(post, 30_000);
+
+    return () => {
+      if (liveNotifRef.current) {
+        clearInterval(liveNotifRef.current);
+        liveNotifRef.current = null;
+      }
+      NotificationManager.cancelWorkoutNotification();
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeWorkout?.startTime, notificationsEnabled]);
+
   // Rest timer — wall-clock based, writes to shared value for UI-thread rendering.
   // restRestartKey forces re-init even when the duration value doesn't change.
   useEffect(() => {
@@ -983,15 +1012,20 @@ export default function WorkoutScreen() {
       Alert.alert('No Exercises Completed', 'Complete at least one set before finishing.');
       return;
     }
-    // Clean up rest timer and notification
+    // Clean up rest timer and notifications
     if (restTimerRef.current) {
       clearInterval(restTimerRef.current);
       restTimerRef.current = null;
+    }
+    if (liveNotifRef.current) {
+      clearInterval(liveNotifRef.current);
+      liveNotifRef.current = null;
     }
     restEndTimeRef.current = null;
     restRemainingShared.value = 0;
     setIsResting(false);
     NotificationManager.cancelRestNotification();
+    NotificationManager.cancelWorkoutNotification();
     finishWorkout();
     router.push('/(tabs)');
   };
@@ -1005,15 +1039,20 @@ export default function WorkoutScreen() {
         {
           text: 'Abandon', style: 'destructive',
           onPress: () => {
-            // Clean up rest timer and notification
+            // Clean up rest timer and notifications
             if (restTimerRef.current) {
               clearInterval(restTimerRef.current);
               restTimerRef.current = null;
+            }
+            if (liveNotifRef.current) {
+              clearInterval(liveNotifRef.current);
+              liveNotifRef.current = null;
             }
             restEndTimeRef.current = null;
             restRemainingShared.value = 0;
             setIsResting(false);
             NotificationManager.cancelRestNotification();
+            NotificationManager.cancelWorkoutNotification();
             cancelWorkout();
             router.push('/(tabs)/dungeons');
           },
