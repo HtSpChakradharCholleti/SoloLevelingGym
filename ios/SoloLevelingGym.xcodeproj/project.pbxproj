@@ -8,30 +8,30 @@
 
 /* Begin PBXBuildFile section */
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
-		3046F528479D194A2081B2F8 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 89C2F3FE8D76713DBAFB1C0A /* PrivacyInfo.xcprivacy */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
-		951F79BB2E3A62260E0208A9 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACD91F403BADAC1F9DDD4CAA /* ExpoModulesProvider.swift */; };
+		481A2170582DB988EA252B14 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1454FD1F602C03E7B35A991 /* ExpoModulesProvider.swift */; };
+		4A40603E75A4F2D5B20038A6 /* libPods-SoloLevelingGym.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 4330BC113851E3AF68ED5EE5 /* libPods-SoloLevelingGym.a */; };
+		8DD0AA5A3DB0404A9F20535D /* notif.wav in Resources */ = {isa = PBXBuildFile; fileRef = B9EC3A55D0C548A29B521FBB /* notif.wav */; };
+		94EC0D1BD32FA863FE06BF35 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = A6177E685197E79CFAE3B733 /* PrivacyInfo.xcprivacy */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
-		C7338C34B4359AD2ADCB208E /* libPods-SoloLevelingGym.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 165267F287E47D038DF75D67 /* libPods-SoloLevelingGym.a */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
-		F817A8DC96924344858BE256 /* notif.wav in Resources */ = {isa = PBXBuildFile; fileRef = 2B96CCA60FD64176963229A7 /* notif.wav */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		08D8D7D4F541C971A8E3C0B8 /* Pods-SoloLevelingGym.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SoloLevelingGym.release.xcconfig"; path = "Target Support Files/Pods-SoloLevelingGym/Pods-SoloLevelingGym.release.xcconfig"; sourceTree = "<group>"; };
 		13B07F961A680F5B00A75B9A /* SoloLevelingGym.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SoloLevelingGym.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = SoloLevelingGym/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = SoloLevelingGym/Info.plist; sourceTree = "<group>"; };
-		165267F287E47D038DF75D67 /* libPods-SoloLevelingGym.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-SoloLevelingGym.a"; sourceTree = BUILT_PRODUCTS_DIR; };
-		2B96CCA60FD64176963229A7 /* notif.wav */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = notif.wav; path = SoloLevelingGym/notif.wav; sourceTree = "<group>"; };
-		6FECCE34DBF5B49F5C44DB1E /* Pods-SoloLevelingGym.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SoloLevelingGym.debug.xcconfig"; path = "Target Support Files/Pods-SoloLevelingGym/Pods-SoloLevelingGym.debug.xcconfig"; sourceTree = "<group>"; };
-		89C2F3FE8D76713DBAFB1C0A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = SoloLevelingGym/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		4330BC113851E3AF68ED5EE5 /* libPods-SoloLevelingGym.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-SoloLevelingGym.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		A6177E685197E79CFAE3B733 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = SoloLevelingGym/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = SoloLevelingGym/SplashScreen.storyboard; sourceTree = "<group>"; };
-		ACD91F403BADAC1F9DDD4CAA /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-SoloLevelingGym/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
+		B3B72CCA10E8E75328BC1424 /* Pods-SoloLevelingGym.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SoloLevelingGym.debug.xcconfig"; path = "Target Support Files/Pods-SoloLevelingGym/Pods-SoloLevelingGym.debug.xcconfig"; sourceTree = "<group>"; };
+		B9EC3A55D0C548A29B521FBB /* notif.wav */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = notif.wav; path = SoloLevelingGym/notif.wav; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
+		E1454FD1F602C03E7B35A991 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-SoloLevelingGym/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = SoloLevelingGym/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* SoloLevelingGym-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "SoloLevelingGym-Bridging-Header.h"; path = "SoloLevelingGym/SoloLevelingGym-Bridging-Header.h"; sourceTree = "<group>"; };
+		FB960DF1851BE731C3C415F7 /* Pods-SoloLevelingGym.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SoloLevelingGym.release.xcconfig"; path = "Target Support Files/Pods-SoloLevelingGym/Pods-SoloLevelingGym.release.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -39,7 +39,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C7338C34B4359AD2ADCB208E /* libPods-SoloLevelingGym.a in Frameworks */,
+				4A40603E75A4F2D5B20038A6 /* libPods-SoloLevelingGym.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -55,8 +55,8 @@
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
-				2B96CCA60FD64176963229A7 /* notif.wav */,
-				89C2F3FE8D76713DBAFB1C0A /* PrivacyInfo.xcprivacy */,
+				B9EC3A55D0C548A29B521FBB /* notif.wav */,
+				A6177E685197E79CFAE3B733 /* PrivacyInfo.xcprivacy */,
 			);
 			name = SoloLevelingGym;
 			sourceTree = "<group>";
@@ -65,27 +65,17 @@
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				165267F287E47D038DF75D67 /* libPods-SoloLevelingGym.a */,
+				4330BC113851E3AF68ED5EE5 /* libPods-SoloLevelingGym.a */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
-		396FEABCD1D3D6C854F8CCCF /* Pods */ = {
+		60DD1343296F2F8CD3C537A7 /* SoloLevelingGym */ = {
 			isa = PBXGroup;
 			children = (
-				6FECCE34DBF5B49F5C44DB1E /* Pods-SoloLevelingGym.debug.xcconfig */,
-				08D8D7D4F541C971A8E3C0B8 /* Pods-SoloLevelingGym.release.xcconfig */,
+				E1454FD1F602C03E7B35A991 /* ExpoModulesProvider.swift */,
 			);
-			name = Pods;
-			path = Pods;
-			sourceTree = "<group>";
-		};
-		772A5C253341DA253348BA00 /* ExpoModulesProviders */ = {
-			isa = PBXGroup;
-			children = (
-				97D4F8A64B39BA1BDC62216B /* SoloLevelingGym */,
-			);
-			name = ExpoModulesProviders;
+			name = SoloLevelingGym;
 			sourceTree = "<group>";
 		};
 		832341AE1AAA6A7D00B99B32 /* Libraries */ = {
@@ -102,8 +92,8 @@
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
-				396FEABCD1D3D6C854F8CCCF /* Pods */,
-				772A5C253341DA253348BA00 /* ExpoModulesProviders */,
+				C92A377B88A8E8A9867195FC /* Pods */,
+				9F19B1A85489A3D8747FA36B /* ExpoModulesProviders */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -118,12 +108,12 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		97D4F8A64B39BA1BDC62216B /* SoloLevelingGym */ = {
+		9F19B1A85489A3D8747FA36B /* ExpoModulesProviders */ = {
 			isa = PBXGroup;
 			children = (
-				ACD91F403BADAC1F9DDD4CAA /* ExpoModulesProvider.swift */,
+				60DD1343296F2F8CD3C537A7 /* SoloLevelingGym */,
 			);
-			name = SoloLevelingGym;
+			name = ExpoModulesProviders;
 			sourceTree = "<group>";
 		};
 		BB2F792B24A3F905000567C9 /* Supporting */ = {
@@ -135,6 +125,16 @@
 			path = SoloLevelingGym/Supporting;
 			sourceTree = "<group>";
 		};
+		C92A377B88A8E8A9867195FC /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				B3B72CCA10E8E75328BC1424 /* Pods-SoloLevelingGym.debug.xcconfig */,
+				FB960DF1851BE731C3C415F7 /* Pods-SoloLevelingGym.release.xcconfig */,
+			);
+			name = Pods;
+			path = Pods;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -143,13 +143,13 @@
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "SoloLevelingGym" */;
 			buildPhases = (
 				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
-				9DD5218A44E1DC8A4A47733A /* [Expo] Configure project */,
+				B440ACAF3494F5999E3329A7 /* [Expo] Configure project */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
-				679FF4521EBAD2ED9A825CE8 /* [CP] Embed Pods Frameworks */,
+				81211DD0A8F027ED7B5A3BCF /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -199,8 +199,8 @@
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
-				F817A8DC96924344858BE256 /* notif.wav in Resources */,
-				3046F528479D194A2081B2F8 /* PrivacyInfo.xcprivacy in Resources */,
+				8DD0AA5A3DB0404A9F20535D /* notif.wav in Resources */,
+				94EC0D1BD32FA863FE06BF35 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -246,28 +246,6 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		679FF4521EBAD2ED9A825CE8 /* [CP] Embed Pods Frameworks */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-SoloLevelingGym/Pods-SoloLevelingGym-frameworks.sh",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/React-Core-prebuilt/React.framework/React",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ReactNativeDependencies/ReactNativeDependencies.framework/ReactNativeDependencies",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermesvm.framework/hermesvm",
-			);
-			name = "[CP] Embed Pods Frameworks";
-			outputPaths = (
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/React.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ReactNativeDependencies.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermesvm.framework",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-SoloLevelingGym/Pods-SoloLevelingGym-frameworks.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
 		800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -310,7 +288,29 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-SoloLevelingGym/Pods-SoloLevelingGym-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		9DD5218A44E1DC8A4A47733A /* [Expo] Configure project */ = {
+		81211DD0A8F027ED7B5A3BCF /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-SoloLevelingGym/Pods-SoloLevelingGym-frameworks.sh",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/React-Core-prebuilt/React.framework/React",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ReactNativeDependencies/ReactNativeDependencies.framework/ReactNativeDependencies",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermesvm.framework/hermesvm",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputPaths = (
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/React.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ReactNativeDependencies.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermesvm.framework",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-SoloLevelingGym/Pods-SoloLevelingGym-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		B440ACAF3494F5999E3329A7 /* [Expo] Configure project */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
@@ -342,7 +342,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
-				951F79BB2E3A62260E0208A9 /* ExpoModulesProvider.swift in Sources */,
+				481A2170582DB988EA252B14 /* ExpoModulesProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -351,7 +351,7 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 6FECCE34DBF5B49F5C44DB1E /* Pods-SoloLevelingGym.debug.xcconfig */;
+			baseConfigurationReference = B3B72CCA10E8E75328BC1424 /* Pods-SoloLevelingGym.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
@@ -376,7 +376,7 @@
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
 				PRODUCT_BUNDLE_IDENTIFIER = com.chakradharxd.SoloLevelingGym;
-				PRODUCT_NAME = SoloLevelingGym;
+				PRODUCT_NAME = "SoloLevelingGym";
 				SWIFT_OBJC_BRIDGING_HEADER = "SoloLevelingGym/SoloLevelingGym-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -387,7 +387,7 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 08D8D7D4F541C971A8E3C0B8 /* Pods-SoloLevelingGym.release.xcconfig */;
+			baseConfigurationReference = FB960DF1851BE731C3C415F7 /* Pods-SoloLevelingGym.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
@@ -407,7 +407,7 @@
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
 				PRODUCT_BUNDLE_IDENTIFIER = com.chakradharxd.SoloLevelingGym;
-				PRODUCT_NAME = SoloLevelingGym;
+				PRODUCT_NAME = "SoloLevelingGym";
 				SWIFT_OBJC_BRIDGING_HEADER = "SoloLevelingGym/SoloLevelingGym-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";

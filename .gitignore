@@ -34,3 +34,4 @@ ios/SoloLevelingGym.xcodeproj/project.xcworkspace/
 publish-ota-update.yaml
 .idea
 .dockerignore
+.claude/settings.local.json

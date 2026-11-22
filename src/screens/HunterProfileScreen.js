@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, StyleSheet, Dimensions, TouchableOpacity, Alert, Switch } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, withDelay, Easing } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -19,6 +19,17 @@ import { testOTAConnectivity, checkForOTAUpdate } from '../utils/otaDiagnostics'
 import { HotUpdater } from '@hot-updater/react-native';
 import XPRing from '../components/XPRing';
 import StatRadarChart from '../components/StatRadarChart';
+import {
+  initializeHealthConnect,
+  getHealthConnectStatus,
+  getHealthPermissions,
+  requestHealthPermissions,
+  getTodaySteps,
+  getTodayHeartRate,
+  getTodaySleep,
+  getTodayExercise,
+  getTodayActiveCalories,
+} from '../services/healthConnect';
 
 const { width } = Dimensions.get('window');
 
@@ -205,6 +216,62 @@ export default function HunterProfileScreen() {
       default: return COLORS.textMuted;
     }
   };
+
+  // ── Health Connect state ───────────────────────────────────────────────────
+  const [hcStatus, setHcStatus] = useState('idle'); // idle | loading | ready | unavailable | error
+  const [hcData, setHcData] = useState(null); // { steps, heartRate, sleep, exercise, calories }
+
+  const handleConnectHealth = useCallback(async () => {
+    setHcStatus('loading');
+    try {
+      const available = await initializeHealthConnect();
+      if (!available) {
+        setHcStatus('unavailable');
+        return;
+      }
+      await requestHealthPermissions();
+      const granted = await getHealthPermissions();
+      if (granted.length === 0) {
+        setHcStatus('error');
+        return;
+      }
+      await loadHcData();
+    } catch {
+      setHcStatus('error');
+    }
+  }, []);
+
+  const loadHcData = useCallback(async () => {
+    setHcStatus('loading');
+    try {
+      const [steps, heartRate, sleep, exercise, calories] = await Promise.all([
+        getTodaySteps(),
+        getTodayHeartRate(),
+        getTodaySleep(),
+        getTodayExercise(),
+        getTodayActiveCalories(),
+      ]);
+      setHcData({ steps, heartRate, sleep, exercise, calories });
+      setHcStatus('ready');
+    } catch {
+      setHcStatus('error');
+    }
+  }, []);
+
+  // Auto-load if already initialised (permissions previously granted)
+  useEffect(() => {
+    (async () => {
+      const status = await getHealthConnectStatus();
+      // SdkAvailabilityStatus.SDK_AVAILABLE = 3
+      if (status === 3) {
+        const granted = await getHealthPermissions();
+        if (granted.length > 0) {
+          await initializeHealthConnect();
+          await loadHcData();
+        }
+      }
+    })();
+  }, [loadHcData]);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -748,6 +815,78 @@ export default function HunterProfileScreen() {
             </Text>
           </TouchableOpacity>
         </View>
+      </SystemPanel>
+
+      {/* ── Health Connect Panel ──────────────────────────────────────────── */}
+      <SystemPanel glowColor="#0ea5e9" style={{ marginTop: SPACING.lg }}>
+        <View style={styles.statsPanelHeader}>
+          <MaterialCommunityIcons name="heart-pulse" size={18} color="#38bdf8" />
+          <Text style={[styles.statsPanelTitle, { color: '#38bdf8' }]}>HEALTH CONNECT</Text>
+          {hcStatus === 'ready' && (
+            <TouchableOpacity onPress={loadHcData} style={{ marginLeft: 'auto' }}>
+              <MaterialCommunityIcons name="refresh" size={16} color={COLORS.textMuted} />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {(hcStatus === 'idle' || hcStatus === 'unavailable' || hcStatus === 'error') && (
+          <View style={styles.hcConnectRow}>
+            {hcStatus === 'unavailable' && (
+              <Text style={styles.hcStatusText}>Health Connect not available on this device.</Text>
+            )}
+            {hcStatus === 'error' && (
+              <Text style={styles.hcStatusText}>Could not load health data. Check permissions.</Text>
+            )}
+            <TouchableOpacity style={styles.hcConnectBtn} onPress={handleConnectHealth}>
+              <MaterialCommunityIcons name="link-variant" size={16} color="#040405" />
+              <Text style={styles.hcConnectBtnText}>Connect Health Data</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {hcStatus === 'loading' && (
+          <Text style={styles.hcStatusText}>Loading health data…</Text>
+        )}
+
+        {hcStatus === 'ready' && hcData && (
+          <View style={styles.hcGrid}>
+            <View style={styles.hcCard}>
+              <MaterialCommunityIcons name="walk" size={20} color="#38bdf8" />
+              <Text style={styles.hcCardValue}>
+                {hcData.steps != null ? hcData.steps.toLocaleString() : 'No data'}
+              </Text>
+              <Text style={styles.hcCardLabel}>Steps</Text>
+            </View>
+            <View style={styles.hcCard}>
+              <MaterialCommunityIcons name="heart" size={20} color="#ef4444" />
+              <Text style={styles.hcCardValue}>
+                {hcData.heartRate?.latest != null ? `${hcData.heartRate.latest} bpm` : 'No data'}
+              </Text>
+              <Text style={styles.hcCardLabel}>Heart Rate</Text>
+            </View>
+            <View style={styles.hcCard}>
+              <MaterialCommunityIcons name="fire" size={20} color={COLORS.warning} />
+              <Text style={styles.hcCardValue}>
+                {hcData.calories != null ? `${Math.round(hcData.calories)} kcal` : 'No data'}
+              </Text>
+              <Text style={styles.hcCardLabel}>Active Cal.</Text>
+            </View>
+            <View style={styles.hcCard}>
+              <MaterialCommunityIcons name="moon-waning-crescent" size={20} color={COLORS.accent} />
+              <Text style={styles.hcCardValue}>
+                {hcData.sleep?.length > 0 ? `${hcData.sleep.length} session${hcData.sleep.length > 1 ? 's' : ''}` : 'No data'}
+              </Text>
+              <Text style={styles.hcCardLabel}>Sleep</Text>
+            </View>
+            <View style={styles.hcCard}>
+              <MaterialCommunityIcons name="dumbbell" size={20} color={COLORS.success} />
+              <Text style={styles.hcCardValue}>
+                {hcData.exercise?.length > 0 ? `${hcData.exercise.length} session${hcData.exercise.length > 1 ? 's' : ''}` : 'No data'}
+              </Text>
+              <Text style={styles.hcCardLabel}>Exercise</Text>
+            </View>
+          </View>
+        )}
       </SystemPanel>
 
       <WeightLogModal
@@ -1351,5 +1490,63 @@ const makeStyles = () => StyleSheet.create({
     color: '#040405',
     letterSpacing: 1,
     fontWeight: '700',
+  },
+
+  // ── Health Connect ────────────────────────────────────────────────────────
+  hcConnectRow: {
+    alignItems: 'center',
+    gap: SPACING.sm,
+    paddingVertical: SPACING.base,
+  },
+  hcStatusText: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textMuted,
+    textAlign: 'center',
+    marginBottom: SPACING.sm,
+  },
+  hcConnectBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+    backgroundColor: '#38bdf8',
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.sm,
+    borderRadius: BORDER_RADIUS.sm,
+  },
+  hcConnectBtnText: {
+    fontFamily: FONTS.bodySemiBold,
+    fontSize: FONT_SIZES.sm,
+    color: '#040405',
+    letterSpacing: 0.5,
+  },
+  hcGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACING.sm,
+    paddingTop: SPACING.sm,
+  },
+  hcCard: {
+    flex: 1,
+    minWidth: '28%',
+    backgroundColor: COLORS.surfaceBorder,
+    borderRadius: BORDER_RADIUS.sm,
+    padding: SPACING.sm,
+    alignItems: 'center',
+    gap: SPACING.xs,
+  },
+  hcCardValue: {
+    fontFamily: FONTS.bodySemiBold,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textPrimary,
+    textAlign: 'center',
+  },
+  hcCardLabel: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textMuted,
+    textAlign: 'center',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
 });
